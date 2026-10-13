@@ -2,7 +2,7 @@ setuptools<81
 numpy==1.23.5
 scipy==1.9.3
 pandas==1.5.3
-matplotlib==3.6.3
+matplotlib>=3.7,<4
 seaborn==0.12.2
 scikit-learn==1.0.2
 xgboost==1.7.6
