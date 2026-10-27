@@ -17,3 +17,4 @@ JPype1==1.4.1
 graphviz==0.20.1
 jupyter
 ipykernel
+openpyxl == 26.2.1
