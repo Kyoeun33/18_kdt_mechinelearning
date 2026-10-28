@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6장 · 차원 축소 (Dimension Reduction)</title>
+<style>
+  :root{
+    --blurple:#635bff;--blurple-2:#7a73ff;--cyan:#00d4ff;--pink:#ff7eb3;
+    --navy:#0a2540;--slate:#425466;--slate-2:#697386;--bg:#f6f9fc;--card:#ffffff;--line:#e6ebf1;
+    --code-bg:#0a1530;
+    --grad:linear-gradient(118deg,#635bff 0%,#7a73ff 38%,#00d4ff 100%);
+    --grad-warm:linear-gradient(118deg,#635bff 0%,#a855f7 50%,#ff7eb3 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#0a2540;color:var(--navy);overflow:hidden;-webkit-font-smoothing:antialiased;}
+  #deck{position:fixed;inset:0;}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;padding:5.2vh 6.5vw 6vh;background:var(--bg);overflow:hidden;}
+  .slide.active{display:flex;animation:fade .45s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  .slide::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--grad);}
+  .slide.dark::before{display:none;}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:700;color:var(--blurple);margin-bottom:1.1rem;}
+  .kicker .dot{width:9px;height:9px;border-radius:50%;background:var(--grad);}
+  h2.slide-title{font-size:2.15rem;line-height:1.18;font-weight:800;letter-spacing:-.02em;color:var(--navy);margin-bottom:1.4rem;}
+  .lead{font-size:1.42rem;line-height:1.6;color:var(--slate);max-width:62ch;}
+  .body-content{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;}
+  p{font-size:1.22rem;line-height:1.62;color:var(--slate);}
+  .grad-text{background:var(--grad-warm);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .slide.cover,.slide.section{background:#0a2540;color:#fff;justify-content:center;}
+  .slide.cover::after,.slide.section::after{content:"";position:absolute;inset:0;z-index:0;
+    background:radial-gradient(60% 80% at 78% 18%,rgba(0,212,255,.32),transparent 60%),
+      radial-gradient(70% 90% at 12% 88%,rgba(168,85,247,.40),transparent 60%),
+      radial-gradient(50% 60% at 50% 50%,rgba(99,91,255,.30),transparent 70%);}
+  .slide.cover>*,.slide.section>*{position:relative;z-index:1;}
+  .slide.cover h1{font-size:3.4rem;font-weight:800;line-height:1.1;letter-spacing:-.03em;color:#fff;margin-bottom:1.4rem;}
+  .slide.cover .sub{font-size:1.48rem;color:#c5d2e0;font-weight:500;max-width:64ch;line-height:1.55;}
+  .slide.cover .chapter-tag{display:inline-block;font-size:1.1rem;font-weight:700;color:#fff;background:var(--grad);padding:.5rem 1.2rem;border-radius:999px;margin-bottom:1.8rem;}
+  .slide.cover .footer-note{position:absolute;bottom:6vh;left:6.5vw;color:#8aa0b8;font-size:1rem;z-index:1;}
+  .slide.section .sec-num{font-size:1.3rem;font-weight:700;color:var(--cyan);margin-bottom:1rem;letter-spacing:.05em;}
+  .slide.section h2{font-size:2.9rem;font-weight:800;color:#fff;line-height:1.12;letter-spacing:-.02em;}
+  .slide.section .sec-desc{font-size:1.35rem;color:#c5d2e0;margin-top:1.3rem;max-width:60ch;line-height:1.55;}
+  .grid{display:grid;gap:1.2rem;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:1.3rem 1.45rem;box-shadow:0 2px 10px rgba(10,37,64,.05);}
+  .card h3{font-size:1.3rem;font-weight:750;color:var(--navy);margin-bottom:.5rem;display:flex;align-items:center;gap:.6rem;}
+  .card p{font-size:1.08rem;line-height:1.48;color:var(--slate);}
+  .card .ico{font-size:1.45rem;}
+  .card.accent{border-top:4px solid transparent;border-image:var(--grad) 1;}
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:.85rem;}
+  ul.clean li{font-size:1.24rem;line-height:1.5;color:var(--slate);padding-left:2rem;position:relative;}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.5em;width:11px;height:11px;border-radius:3px;background:var(--grad);}
+  ul.clean li b{color:var(--navy);font-weight:750;}
+  .code{background:var(--code-bg);border-radius:14px;padding:1.05rem 1.3rem;font-family:"SF Mono","JetBrains Mono",Consolas,monospace;font-size:1.0rem;line-height:1.6;color:#e2e8f0;overflow:auto;box-shadow:0 8px 30px rgba(10,21,48,.35);}
+  .code.sm{font-size:.92rem;}
+  .code .cm{color:#7c89a8;font-style:italic;}
+  .code .kw{color:#ff7eb3;}.code .fn{color:#00d4ff;}.code .st{color:#9be6a8;}.code .nm{color:#ffd479;}.code .out{color:#7c89a8;}
+  .code-label{font-size:.95rem;font-weight:700;color:var(--slate-2);margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;}
+  .code-label::before{content:"▸";color:var(--blurple);}
+  .analogy{background:linear-gradient(135deg,#f0f1ff,#fdf2f8);border:1px solid #e3e0ff;border-left:5px solid var(--blurple);border-radius:14px;padding:1.05rem 1.35rem;}
+  .analogy .tag{font-size:.95rem;font-weight:800;color:var(--blurple);margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem;}
+  .analogy p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .analogy p b{color:var(--blurple);}
+  .warn{background:linear-gradient(135deg,#fffbeb,#fff7ed);border:1px solid #fde68a;border-left:5px solid #f59e0b;border-radius:14px;padding:1.05rem 1.35rem;}
+  .warn .tag{font-size:.95rem;font-weight:800;color:#b45309;margin-bottom:.35rem;}
+  .warn p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .warn p b{color:#b45309;}
+  .quiz{background:#fff;border:2px dashed var(--blurple-2);border-radius:18px;padding:1.4rem 1.6rem;}
+  .quiz .q-tag{display:inline-flex;align-items:center;gap:.5rem;background:var(--grad);color:#fff;font-weight:700;font-size:1rem;padding:.35rem 1rem;border-radius:999px;margin-bottom:.9rem;}
+  .quiz .q{font-size:1.35rem;font-weight:700;color:var(--navy);line-height:1.45;margin-bottom:1rem;}
+  .quiz .opts{display:flex;flex-direction:column;gap:.55rem;}
+  .quiz .opt{font-size:1.15rem;color:var(--slate);padding:.6rem 1.1rem;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;transition:.18s;}
+  .quiz .opt:hover{border-color:var(--blurple-2);background:#f7f7ff;}
+  .quiz .opt.reveal-correct{border-color:#22c55e;background:#f0fdf4;color:#15803d;font-weight:700;}
+  .quiz .answer{margin-top:.9rem;font-size:1.1rem;color:var(--slate);display:none;}
+  .quiz .answer.show{display:block;animation:fade .3s;}
+  .quiz .answer b{color:#15803d;}
+  .reveal-btn{margin-top:.8rem;background:var(--blurple);color:#fff;border:none;font-size:1.02rem;font-weight:700;padding:.5rem 1.25rem;border-radius:10px;cursor:pointer;font-family:inherit;}
+  .reveal-btn:hover{background:#5249e0;}
+  .practice{background:linear-gradient(135deg,#0a2540,#1a1f4d);color:#fff;border-radius:16px;padding:1.2rem 1.5rem;}
+  .practice .p-tag{display:inline-flex;align-items:center;gap:.5rem;color:var(--cyan);font-weight:800;font-size:1.02rem;margin-bottom:.5rem;}
+  .practice p{color:#d4dff0;font-size:1.12rem;line-height:1.5;}
+  .practice code{background:rgba(0,212,255,.14);color:#7fe9ff;padding:.15em .5em;border-radius:6px;font-family:"SF Mono",monospace;font-size:.95em;}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .compare.three{grid-template-columns:1fr 1fr 1fr;}
+  .compare .col{padding:1.2rem 1.4rem;}
+  .compare .col.old{background:#fff;}
+  .compare .col.new{background:linear-gradient(135deg,#f0f1ff,#faf5ff);}
+  .compare .col h4{font-size:1.18rem;font-weight:800;margin-bottom:.7rem;}
+  .compare .col.old h4{color:var(--slate-2);}
+  .compare .col.new h4{color:var(--blurple);}
+  .compare .col p{font-size:1.05rem;line-height:1.42;margin-bottom:.5rem;}
+  .note{font-size:1.02rem;color:var(--slate-2);margin-top:.75rem;line-height:1.48;}
+  .note b{color:var(--navy);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem;align-items:center;}
+  .stack{display:flex;flex-direction:column;gap:.9rem;}
+  .flow{display:flex;align-items:stretch;gap:.5rem;margin:.4rem 0;flex-wrap:wrap;}
+  .flow .step{flex:1;min-width:120px;background:var(--grad);color:#fff;border-radius:14px;padding:.85rem .7rem;text-align:center;box-shadow:0 6px 18px rgba(99,91,255,.22);}
+  .flow .step .n{font-size:1.1rem;font-weight:800;}
+  .flow .step .s{font-size:.85rem;opacity:.9;margin-top:.15rem;}
+  .flow .arr{display:flex;align-items:center;font-size:1.4rem;color:var(--blurple);font-weight:800;}
+  table.simple{border-collapse:collapse;width:100%;font-size:1.05rem;}
+  table.simple th,table.simple td{border:1px solid var(--line);padding:.55rem .7rem;text-align:center;}
+  table.simple th{background:#f0f1ff;color:var(--navy);font-weight:800;}
+  table.simple td{color:var(--slate);}
+  table.simple tr:nth-child(even) td{background:#fafbfd;}
+  table.simple .hi{color:var(--blurple);font-weight:800;}
+  table.simple td.l,table.simple th.l{text-align:left;}
+  .dimviz{display:flex;align-items:center;justify-content:center;gap:1.5rem;}
+  .dimviz .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:1.2rem 1.6rem;text-align:center;box-shadow:0 2px 10px rgba(10,37,64,.05);}
+  .dimviz .box .big{font-size:2.4rem;font-weight:800;color:var(--blurple);}
+  .dimviz .box .lab{font-size:1rem;color:var(--slate-2);margin-top:.3rem;}
+  .dimviz .arrow{font-size:2rem;color:var(--blurple);font-weight:800;}
+  #progress{position:fixed;top:0;left:0;height:4px;background:var(--grad);z-index:100;transition:width .35s ease;}
+  #hud{position:fixed;bottom:1.4vh;right:2vw;z-index:100;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem .9rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  #hud .counter{font-size:.95rem;font-weight:700;color:var(--slate);font-variant-numeric:tabular-nums;}
+  #hud button{border:none;background:transparent;cursor:pointer;font-size:1.3rem;color:var(--blurple);width:30px;height:30px;border-radius:50%;line-height:1;display:flex;align-items:center;justify-content:center;}
+  #hud button:hover{background:#eef0ff;}
+  #sectionlabel{position:fixed;bottom:1.4vh;left:2vw;z-index:100;font-size:.95rem;font-weight:700;color:var(--slate-2);background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem 1rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  .hint{position:fixed;bottom:1.4vh;left:50%;transform:translateX(-50%);z-index:100;font-size:.85rem;color:#8aa0b8;}
+  @media (max-width:1100px){h2.slide-title{font-size:1.85rem;}.slide.cover h1{font-size:2.5rem;}.slide.section h2{font-size:2.2rem;}.lead{font-size:1.18rem;}.grid-3,.grid-4{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="deck">
+
+<!-- 1 COVER -->
+<section class="slide cover active">
+  <div class="chapter-tag">CHAPTER 06</div>
+  <h1>차원 축소<br><span style="font-size:2.1rem;font-weight:700;color:#c5d2e0">Dimension Reduction</span></h1>
+  <p class="sub">피처가 수백 개라면? <b style="color:#fff">핵심만 남기고 압축</b>합니다. PCA·LDA·SVD·NMF로 데이터를 가볍게, 시각화 가능하게, 그리고 더 똑똑하게 만드는 법.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 강의자료</div>
+</section>
+
+<!-- 2 복습+목표 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>5장 복습 & 6장 목표</div>
+  <h2 class="slide-title">피처가 너무 많으면 생기는 문제</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <div class="card"><h3>🤔 5장에서 봤듯</h3><p>집값 예측에 피처가 <b>79개</b>였죠. 현실 데이터는 피처가 수백·수천 개가 되기도 합니다.</p></div>
+        <div class="card accent"><h3>🎯 6장에서</h3><p>수많은 피처를 <b>핵심 정보만 담은 소수의 피처</b>로 압축하는 법을 배웁니다. (비지도학습)</p></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 요약본 만들기</div>
+        <p>500쪽짜리 책을 <b>10쪽 요약본</b>으로 만드는 것과 같아요. 분량은 줄지만 <b>핵심 내용은 유지</b>합니다. 차원 축소는 데이터의 '요약본'을 만드는 기술입니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 목차 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>6장의 큰 흐름</div>
+  <h2 class="slide-title">오늘의 지도</h2>
+  <div class="body-content">
+    <ul class="clean">
+      <li><b>차원 축소 개요</b> — 왜 필요한가 (차원의 저주)</li>
+      <li><b>PCA</b> — 가장 대표적인 차원 축소. 분산이 큰 방향을 찾기</li>
+      <li><b>LDA</b> — 클래스를 가장 잘 구분하는 방향을 찾기</li>
+      <li><b>SVD</b> — 행렬을 분해해 압축 (추천·이미지의 기반)</li>
+      <li><b>NMF</b> — 음수 없는 분해로 해석이 쉬운 차원 축소</li>
+    </ul>
+    <p class="note">📌 이 장은 <b>이론보다 '무엇을·왜' 쓰는지</b>에 집중합니다. 수식은 가볍게, 직관은 확실하게!</p>
+  </div>
+</section>
+
+<!-- SECTION 1 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 01</div>
+  <h2>차원 축소 개요</h2>
+  <p class="sec-desc">피처(차원)가 많으면 왜 문제일까? 그리고 어떻게 줄일까?</p>
+</section>
+
+<!-- 5 차원의 저주 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>차원의 저주</div>
+  <h2 class="slide-title">왜 피처를 줄여야 할까?</h2>
+  <div class="body-content">
+    <div class="grid grid-3">
+      <div class="card"><h3>🕳️ 차원의 저주</h3><p>피처가 늘수록 데이터가 <b>희박</b>해져 학습이 어려워짐</p></div>
+      <div class="card"><h3>🐌 계산 비용</h3><p>피처가 많으면 <b>학습이 느리고</b> 메모리도 많이 씀</p></div>
+      <div class="card"><h3>📊 시각화</h3><p>2~3차원으로 줄이면 <b>눈으로 볼 수</b> 있음</p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 비유 · 넓은 운동장의 친구 찾기</div>
+      <p>좁은 방(저차원)에선 친구를 금방 찾지만, <b>축구장 100개 넓이(고차원)</b>에선 같은 인원도 띄엄띄엄 흩어져 찾기 어렵죠. 차원이 커질수록 데이터가 <b>텅 빈 듯 희박</b>해지는 게 '차원의 저주'입니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 피처 선택 vs 추출 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>차원 축소의 두 갈래</div>
+  <h2 class="slide-title">고르기 vs 새로 만들기</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col old">
+        <h4>피처 선택 (Selection)</h4>
+        <p>기존 피처 중 <b>중요한 것만 고름</b></p>
+        <p>예: 79개 중 쓸모없는 20개 버리기</p>
+        <p>원래 의미가 그대로 유지됨</p>
+      </div>
+      <div class="col new">
+        <h4>피처 추출 (Extraction) ⭐</h4>
+        <p>기존 피처를 <b>조합해 새 피처를 만듦</b></p>
+        <p>예: 79개를 압축해 5개의 새 축으로</p>
+        <p>PCA·LDA·SVD·NMF가 여기에 속함</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 짐 싸기</div>
+      <p><b>선택</b>은 "안 쓰는 물건은 빼고 챙기기", <b>추출</b>은 "여러 물건을 압축팩에 모아 부피 줄이기". 6장은 주로 <b>추출(압축)</b> 기법들을 다룹니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7 퀴즈 1 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>개요 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="2">
+      <span class="q-tag">QUIZ 01</span>
+      <div class="q">차원 축소(차원을 줄이는 것)의 효과로 <b>적절하지 않은</b> 것은?</div>
+      <div class="opts">
+        <div class="opt">① 학습 속도가 빨라지고 메모리를 아낀다</div>
+        <div class="opt">② 2~3차원으로 줄이면 시각화가 가능하다</div>
+        <div class="opt">③ 피처를 줄이면 정보가 늘어나 항상 정확도가 올라간다</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ③</b> — 차원 축소는 정보를 '늘리는' 게 아니라 '압축'하는 것. 약간의 정보 손실은 있지만, 노이즈 제거·속도·시각화 같은 이점이 큽니다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 02</div>
+  <h2>PCA — 주성분 분석</h2>
+  <p class="sec-desc">가장 널리 쓰이는 차원 축소. "데이터가 가장 많이 퍼진 방향"을 찾습니다.</p>
+</section>
+
+<!-- 9 PCA 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>PCA 개요</div>
+  <h2 class="slide-title">PCA = 분산이 가장 큰 방향 찾기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>데이터가 <b>가장 넓게 퍼진 방향</b>(분산이 큰 축)을 찾음</li>
+          <li>그 방향을 새 축(<b>주성분</b>)으로 삼아 데이터를 투영</li>
+          <li>정보 손실을 최소화하며 차원을 줄임</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 그림자</div>
+        <p>3D 물체를 손전등으로 비춰 벽에 <b>2D 그림자</b>를 만든다고 생각해보세요. <b>물체의 특징이 가장 잘 드러나는 각도</b>로 비추면, 차원은 줄어도 형태를 알아볼 수 있죠. PCA가 그 '최적의 각도'를 찾아줍니다.</p>
+      </div>
+    </div>
+    <p class="note">📌 비지도학습 — <b>정답(레이블) 없이</b> 데이터의 분포만 보고 축을 찾습니다.</p>
+  </div>
+</section>
+
+<!-- 10 PCA 코드 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>PCA 코드</div>
+  <h2 class="slide-title">코드로 보기 — 스케일링이 먼저!</h2>
+  <div class="body-content">
+    <div class="code"><span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.decomposition <span class="kw">import</span> PCA
+
+<span class="cm"># ① PCA 전에 반드시 스케일링! (단위 영향 제거)</span>
+iris_scaled = <span class="fn">StandardScaler</span>().<span class="fn">fit_transform</span>(iris.data)
+
+<span class="cm"># ② 4차원 → 2차원으로 축소</span>
+pca = <span class="fn">PCA</span>(n_components=<span class="nm">2</span>)
+iris_pca = pca.<span class="fn">fit_transform</span>(iris_scaled)   <span class="cm"># (150, 4) → (150, 2)</span></div>
+    <div class="warn" style="margin-top:1.3rem">
+      <div class="tag">⚠️ 스케일링은 필수</div>
+      <p>PCA는 '분산이 큰 방향'을 찾는데, 스케일이 다르면 <b>단지 단위가 큰 피처가 주성분을 독차지</b>합니다. (예: 키 cm vs 몸무게 kg) 그래서 <b>반드시 StandardScaler를 먼저</b> 적용해요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 11 explained variance + 성능 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>얼마나 보존됐나</div>
+  <h2 class="slide-title">explained_variance_ratio_</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code sm"><span class="fn">print</span>(pca.explained_variance_ratio_)
+<span class="cm"># [0.73, 0.23] → 2개 축이</span>
+<span class="cm"># 원본 정보의 약 96%를 보존!</span></div>
+        <p class="note" style="margin-top:.8rem">4차원 → 2차원으로 줄였는데 정보는 96% 유지. 시각화도 가능해졌죠.</p>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 핵심 지표</div>
+        <p><b>explained_variance_ratio_</b>는 각 주성분이 <b>원본 정보(분산)를 몇 % 설명하는지</b> 알려줍니다. 이 값들을 보고 <b>"몇 개의 축까지 남길지"</b>를 결정해요. 합이 90% 넘으면 보통 충분.</p>
+      </div>
+    </div>
+    <p class="note">🔑 붓꽃 데이터: 원본(4차원) 정확도와 PCA(2차원) 정확도가 큰 차이 없음 → <b>절반으로 압축해도 성능 유지!</b></p>
+  </div>
+</section>
+
+<!-- SECTION 3 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 03</div>
+  <h2>LDA — 선형 판별 분석</h2>
+  <p class="sec-desc">PCA와 닮았지만 결정적 차이가 있습니다. LDA는 '정답'을 봅니다.</p>
+</section>
+
+<!-- 13 LDA 개념 + PCA 비교 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>LDA 개요</div>
+  <h2 class="slide-title">LDA = 클래스를 가장 잘 가르는 방향</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col new">
+        <h4>PCA (비지도)</h4>
+        <p>정답을 <b>안 봄</b></p>
+        <p><b>분산이 큰</b> 방향을 찾음</p>
+        <p>"데이터가 가장 퍼진 쪽"</p>
+      </div>
+      <div class="col new">
+        <h4>LDA (지도)</h4>
+        <p>정답(레이블)을 <b>봄</b></p>
+        <p><b>클래스 구분이 잘 되는</b> 방향</p>
+        <p>"품종이 가장 잘 나뉘는 쪽"</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 학생 줄 세우기</div>
+      <p>PCA는 "학생들이 가장 넓게 퍼지도록" 줄 세우기. LDA는 "<b>반(class)별로 가장 잘 모이도록</b>" 줄 세우기. LDA는 <b>분류에 유리한 축</b>을 찾으므로, 분류가 목적일 때 강력합니다.</p>
+    </div>
+    <p class="note">📌 코드는 PCA와 거의 같되, <code style="font-family:monospace">lda.fit(X, y)</code> 처럼 <b>레이블 y도 함께</b> 넣습니다.</p>
+  </div>
+</section>
+
+<!-- 14 퀴즈 2 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>PCA vs LDA 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="1">
+      <span class="q-tag">QUIZ 02</span>
+      <div class="q">PCA와 LDA의 가장 큰 차이는?</div>
+      <div class="opts">
+        <div class="opt">① 둘은 완전히 똑같다</div>
+        <div class="opt">② LDA는 정답(레이블)을 사용해 클래스 구분이 잘 되는 축을 찾는다</div>
+        <div class="opt">③ PCA만 차원을 줄일 수 있다</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ②</b> — PCA는 비지도(정답 X, 분산 최대), LDA는 지도(정답 O, 클래스 분리 최대). 그래서 LDA의 fit()엔 y가 필요합니다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 04</div>
+  <h2>SVD — 특이값 분해</h2>
+  <p class="sec-desc">행렬을 세 조각으로 쪼개 압축하는 기법. 추천 시스템과 이미지 처리의 토대입니다.</p>
+</section>
+
+<!-- 16 SVD 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>SVD 개요</div>
+  <h2 class="slide-title">SVD = 행렬을 세 조각으로 분해</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <div class="code sm"><span class="kw">from</span> numpy.linalg <span class="kw">import</span> svd
+U, Sigma, Vt = <span class="fn">svd</span>(A)
+<span class="cm"># A = U · Σ · Vᵀ 로 분해</span></div>
+        <ul class="clean">
+          <li><b>Sigma(Σ)</b>의 값들이 각 성분의 <b>중요도</b></li>
+          <li>중요한 일부만 남기면 → <b>압축</b></li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 레시피 분해</div>
+        <p>복잡한 요리(행렬)를 <b>'재료 × 비중 × 조리법'</b>으로 분해하는 것. 비중(Σ)이 큰 핵심 재료만 남기면, 원래 맛을 거의 살리면서 <b>레시피를 간단하게</b> 만들 수 있죠.</p>
+      </div>
+    </div>
+    <p class="note">📌 PCA도 내부적으로 SVD를 사용합니다. SVD는 더 일반적이고 강력한 행렬 분해 도구예요.</p>
+  </div>
+</section>
+
+<!-- 17 Truncated SVD -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>Truncated SVD</div>
+  <h2 class="slide-title">일부만 남겨 압축하기</h2>
+  <div class="body-content">
+    <div class="dimviz">
+      <div class="box"><div class="big">1000×1000</div><div class="lab">원본 행렬</div></div>
+      <div class="arrow">→</div>
+      <div class="box"><div class="big">상위 k개</div><div class="lab">중요 성분만</div></div>
+      <div class="arrow">→</div>
+      <div class="box"><div class="big">≈ 원본</div><div class="lab">거의 복원</div></div>
+    </div>
+    <div class="analogy" style="margin-top:1.6rem">
+      <div class="tag">💡 비유 · JPEG 이미지 압축</div>
+      <p>사진을 JPEG로 저장하면 용량은 확 줄지만 <b>눈으론 거의 차이가 없죠.</b> Truncated SVD도 똑같이, <b>중요한 성분 상위 k개만 남겨</b> 행렬을 압축합니다. 사이킷런의 <code style="font-family:monospace">TruncatedSVD</code>로 쉽게 사용해요.</p>
+    </div>
+    <p class="note">🔑 텍스트 데이터(희소 행렬)나 추천 시스템처럼 <b>거대한 행렬</b>을 다룰 때 특히 유용합니다.</p>
+  </div>
+</section>
+
+<!-- SECTION 5 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 05</div>
+  <h2>NMF — 음수 미포함 행렬 분해</h2>
+  <p class="sec-desc">SVD의 사촌. "모두 0 이상"이라는 조건 덕에 해석이 직관적입니다.</p>
+</section>
+
+<!-- 19 NMF 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>NMF 개요</div>
+  <h2 class="slide-title">NMF = 양수로만 분해하기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>행렬을 <b>0 이상의 값들로만</b> 분해</li>
+          <li>각 성분이 <b>'부분의 합'</b>으로 해석됨</li>
+          <li>의미가 명확해 <b>해석이 쉬움</b></li>
+        </ul>
+        <div class="code sm"><span class="kw">from</span> sklearn.decomposition <span class="kw">import</span> NMF
+nmf = <span class="fn">NMF</span>(n_components=<span class="nm">2</span>)</div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 얼굴 = 부분의 합</div>
+        <p>얼굴 사진을 <b>눈·코·입 같은 부분 요소들의 조합</b>으로 분해하는 것. 음수가 없으니 "이건 빼고"가 아니라 <b>"이것들을 더해서"</b>로만 설명돼 직관적이에요. 추천·토픽 모델링에 잘 쓰입니다.</p>
+      </div>
+    </div>
+    <p class="note">📌 "더하기만으로 구성" → 이미지의 부분 특징, 문서의 주제 등 <b>해석 가능한 잠재 요인</b>을 찾기 좋아요.</p>
+  </div>
+</section>
+
+<!-- 20 활용 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>차원 축소는 어디에 쓰나</div>
+  <h2 class="slide-title">실전에서의 차원 축소</h2>
+  <div class="body-content">
+    <div class="grid grid-4">
+      <div class="card"><h3>📊 시각화</h3><p>고차원 데이터를 2D로 그려 탐색</p></div>
+      <div class="card"><h3>⚡ 속도↑</h3><p>피처를 줄여 학습 가속</p></div>
+      <div class="card"><h3>🎬 추천</h3><p>SVD/NMF로 잠재 요인 추출 (9장 예고)</p></div>
+      <div class="card"><h3>🧹 노이즈 제거</h3><p>중요 성분만 남겨 잡음 제거</p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 실무 팁</div>
+      <p>차원 축소는 <b>그 자체가 목적이기보다 '전처리 단계'</b>로 자주 쓰입니다. 모델 학습 전에 PCA로 피처를 줄이거나, 데이터를 한눈에 보려고 2D로 그리거나. <b>8·9장(텍스트·추천)에서 SVD/NMF가 다시 등장</b>합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 21 비교표 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>네 가지 기법 비교</div>
+  <h2 class="slide-title">한눈에 정리하기</h2>
+  <div class="body-content">
+    <table class="simple">
+      <tr><th class="l">기법</th><th>지도/비지도</th><th class="l">핵심 아이디어</th><th class="l">주 용도</th></tr>
+      <tr><td class="l hi">PCA</td><td>비지도</td><td class="l">분산이 큰 방향</td><td class="l">범용 차원 축소·시각화</td></tr>
+      <tr><td class="l hi">LDA</td><td>지도</td><td class="l">클래스 분리 최대</td><td class="l">분류 전처리</td></tr>
+      <tr><td class="l hi">SVD</td><td>비지도</td><td class="l">행렬 분해</td><td class="l">대용량·희소 행렬, 추천</td></tr>
+      <tr><td class="l hi">NMF</td><td>비지도</td><td class="l">양수 분해 (부분의 합)</td><td class="l">해석·토픽·추천</td></tr>
+    </table>
+    <p class="note" style="margin-top:1.1rem">🔑 <b>일단 PCA</b>가 기본. 분류가 목적이면 LDA, 거대 행렬·추천이면 SVD/NMF를 고려하세요.</p>
+  </div>
+</section>
+
+<!-- 정리 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>6장 핵심 정리</div>
+  <h2 class="slide-title">오늘의 한 페이지 요약</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card accent"><h3><span class="ico">🗜️</span>차원 축소란</h3><p>많은 피처를 <b>핵심만 압축</b>(피처 추출). 차원의 저주 완화, 속도·시각화·노이즈 제거.</p></div>
+      <div class="card accent"><h3><span class="ico">📐</span>PCA & LDA</h3><p>PCA=분산 큰 방향(비지도), LDA=클래스 분리(지도). <b>PCA 전엔 스케일링 필수.</b></p></div>
+      <div class="card accent"><h3><span class="ico">🧩</span>SVD & NMF</h3><p>행렬 분해로 압축. SVD는 범용·희소, NMF는 <b>양수 분해로 해석 쉬움.</b></p></div>
+      <div class="card accent"><h3><span class="ico">🛠️</span>실전</h3><p>주로 <b>전처리 단계</b>로 활용. 8·9장(텍스트·추천)에서 재등장.</p></div>
+    </div>
+    <p class="note" style="margin-top:1.2rem">✅ 핵심은 "<b>정보는 최대한 지키며 차원은 줄인다</b>". 수식은 잊어도, 이 직관과 언제 무엇을 쓸지만 기억하면 충분해요!</p>
+  </div>
+</section>
+
+<!-- 마무리 -->
+<section class="slide cover">
+  <div class="chapter-tag">NEXT · CHAPTER 07</div>
+  <h1>정답 없이 끼리끼리<br>묶어보자 🧩</h1>
+  <p class="sub">차원 축소에 이어, 또 다른 비지도학습 <b style="color:#fff">군집화(Clustering)</b>로 갑니다. 정답 라벨 없이 <b style="color:#fff">비슷한 데이터끼리 그룹</b>으로 묶는 법 — K-평균, 평균 이동, GMM, DBSCAN을 배웁니다.</p>
+  <p class="sub" style="margin-top:1.3rem;font-size:1.22rem;color:#9fb3c8">💪 숙제: 붓꽃 데이터를 PCA로 2차원으로 줄여 산점도로 그려보고, 품종이 잘 나뉘는지 확인해 보기.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 6장 끝 · 수고했습니다!</div>
+</section>
+
+</div>
+
+<div id="sectionlabel">6장 · 차원 축소</div>
+<div class="hint">← → 또는 스페이스로 이동 · F 전체화면</div>
+<div id="hud">
+  <button onclick="go(-1)" aria-label="이전">‹</button>
+  <span class="counter"><span id="cur">1</span> / <span id="total">1</span></span>
+  <button onclick="go(1)" aria-label="다음">›</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+  function render(){
+    slides.forEach((s,i)=>s.classList.toggle('active', i===idx));
+    document.getElementById('cur').textContent = idx+1;
+    document.getElementById('progress').style.width = ((idx+1)/slides.length*100)+'%';
+  }
+  function go(d){const n=idx+d;if(n>=0&&n<slides.length){idx=n;render();}}
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(-1);}
+    else if(e.key==='Home'){idx=0;render();}
+    else if(e.key==='End'){idx=slides.length-1;render();}
+    else if(e.key.toLowerCase()==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+  });
+  document.getElementById('deck').addEventListener('click', e=>{
+    if(e.target.closest('.opt,.reveal-btn,button,a'))return;
+    const x=e.clientX/window.innerWidth;go(x<0.25?-1:1);
+  });
+  function revealQuiz(btn){
+    const quiz=btn.closest('.quiz');
+    const ansIdx=parseInt(quiz.dataset.answer,10);
+    const opts=quiz.querySelectorAll('.opt');
+    if(opts[ansIdx])opts[ansIdx].classList.add('reveal-correct');
+    quiz.querySelector('.answer').classList.add('show');
+    btn.style.display='none';
+  }
+  render();
+</script>
+</body>
+</html>

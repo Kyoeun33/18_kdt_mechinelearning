@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>9장 · 추천 시스템 (Recommendation)</title>
+<style>
+  :root{
+    --blurple:#635bff;--blurple-2:#7a73ff;--cyan:#00d4ff;--pink:#ff7eb3;
+    --navy:#0a2540;--slate:#425466;--slate-2:#697386;--bg:#f6f9fc;--card:#ffffff;--line:#e6ebf1;
+    --code-bg:#0a1530;
+    --grad:linear-gradient(118deg,#635bff 0%,#7a73ff 38%,#00d4ff 100%);
+    --grad-warm:linear-gradient(118deg,#635bff 0%,#a855f7 50%,#ff7eb3 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#0a2540;color:var(--navy);overflow:hidden;-webkit-font-smoothing:antialiased;}
+  #deck{position:fixed;inset:0;}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;padding:5.2vh 6.5vw 6vh;background:var(--bg);overflow:hidden;}
+  .slide.active{display:flex;animation:fade .45s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  .slide::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--grad);}
+  .slide.dark::before{display:none;}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:700;color:var(--blurple);margin-bottom:1.1rem;}
+  .kicker .dot{width:9px;height:9px;border-radius:50%;background:var(--grad);}
+  h2.slide-title{font-size:2.15rem;line-height:1.18;font-weight:800;letter-spacing:-.02em;color:var(--navy);margin-bottom:1.4rem;}
+  .lead{font-size:1.42rem;line-height:1.6;color:var(--slate);max-width:62ch;}
+  .body-content{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;}
+  p{font-size:1.22rem;line-height:1.62;color:var(--slate);}
+  .grad-text{background:var(--grad-warm);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .slide.cover,.slide.section{background:#0a2540;color:#fff;justify-content:center;}
+  .slide.cover::after,.slide.section::after{content:"";position:absolute;inset:0;z-index:0;
+    background:radial-gradient(60% 80% at 78% 18%,rgba(0,212,255,.32),transparent 60%),
+      radial-gradient(70% 90% at 12% 88%,rgba(168,85,247,.40),transparent 60%),
+      radial-gradient(50% 60% at 50% 50%,rgba(99,91,255,.30),transparent 70%);}
+  .slide.cover>*,.slide.section>*{position:relative;z-index:1;}
+  .slide.cover h1{font-size:3.4rem;font-weight:800;line-height:1.1;letter-spacing:-.03em;color:#fff;margin-bottom:1.4rem;}
+  .slide.cover .sub{font-size:1.48rem;color:#c5d2e0;font-weight:500;max-width:64ch;line-height:1.55;}
+  .slide.cover .chapter-tag{display:inline-block;font-size:1.1rem;font-weight:700;color:#fff;background:var(--grad);padding:.5rem 1.2rem;border-radius:999px;margin-bottom:1.8rem;}
+  .slide.cover .footer-note{position:absolute;bottom:6vh;left:6.5vw;color:#8aa0b8;font-size:1rem;z-index:1;}
+  .slide.section .sec-num{font-size:1.3rem;font-weight:700;color:var(--cyan);margin-bottom:1rem;letter-spacing:.05em;}
+  .slide.section h2{font-size:2.9rem;font-weight:800;color:#fff;line-height:1.12;letter-spacing:-.02em;}
+  .slide.section .sec-desc{font-size:1.35rem;color:#c5d2e0;margin-top:1.3rem;max-width:60ch;line-height:1.55;}
+  .grid{display:grid;gap:1.2rem;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:1.3rem 1.45rem;box-shadow:0 2px 10px rgba(10,37,64,.05);}
+  .card h3{font-size:1.3rem;font-weight:750;color:var(--navy);margin-bottom:.5rem;display:flex;align-items:center;gap:.6rem;}
+  .card p{font-size:1.08rem;line-height:1.48;color:var(--slate);}
+  .card .ico{font-size:1.45rem;}
+  .card.accent{border-top:4px solid transparent;border-image:var(--grad) 1;}
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:.85rem;}
+  ul.clean li{font-size:1.24rem;line-height:1.5;color:var(--slate);padding-left:2rem;position:relative;}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.5em;width:11px;height:11px;border-radius:3px;background:var(--grad);}
+  ul.clean li b{color:var(--navy);font-weight:750;}
+  .code{background:var(--code-bg);border-radius:14px;padding:1.05rem 1.3rem;font-family:"SF Mono","JetBrains Mono",Consolas,monospace;font-size:1.0rem;line-height:1.6;color:#e2e8f0;overflow:auto;box-shadow:0 8px 30px rgba(10,21,48,.35);}
+  .code.sm{font-size:.92rem;}
+  .code .cm{color:#7c89a8;font-style:italic;}
+  .code .kw{color:#ff7eb3;}.code .fn{color:#00d4ff;}.code .st{color:#9be6a8;}.code .nm{color:#ffd479;}.code .out{color:#7c89a8;}
+  .code-label{font-size:.95rem;font-weight:700;color:var(--slate-2);margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;}
+  .code-label::before{content:"▸";color:var(--blurple);}
+  .analogy{background:linear-gradient(135deg,#f0f1ff,#fdf2f8);border:1px solid #e3e0ff;border-left:5px solid var(--blurple);border-radius:14px;padding:1.05rem 1.35rem;}
+  .analogy .tag{font-size:.95rem;font-weight:800;color:var(--blurple);margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem;}
+  .analogy p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .analogy p b{color:var(--blurple);}
+  .warn{background:linear-gradient(135deg,#fffbeb,#fff7ed);border:1px solid #fde68a;border-left:5px solid #f59e0b;border-radius:14px;padding:1.05rem 1.35rem;}
+  .warn .tag{font-size:.95rem;font-weight:800;color:#b45309;margin-bottom:.35rem;}
+  .warn p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .warn p b{color:#b45309;}
+  .quiz{background:#fff;border:2px dashed var(--blurple-2);border-radius:18px;padding:1.4rem 1.6rem;}
+  .quiz .q-tag{display:inline-flex;align-items:center;gap:.5rem;background:var(--grad);color:#fff;font-weight:700;font-size:1rem;padding:.35rem 1rem;border-radius:999px;margin-bottom:.9rem;}
+  .quiz .q{font-size:1.35rem;font-weight:700;color:var(--navy);line-height:1.45;margin-bottom:1rem;}
+  .quiz .opts{display:flex;flex-direction:column;gap:.55rem;}
+  .quiz .opt{font-size:1.15rem;color:var(--slate);padding:.6rem 1.1rem;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;transition:.18s;}
+  .quiz .opt:hover{border-color:var(--blurple-2);background:#f7f7ff;}
+  .quiz .opt.reveal-correct{border-color:#22c55e;background:#f0fdf4;color:#15803d;font-weight:700;}
+  .quiz .answer{margin-top:.9rem;font-size:1.1rem;color:var(--slate);display:none;}
+  .quiz .answer.show{display:block;animation:fade .3s;}
+  .quiz .answer b{color:#15803d;}
+  .reveal-btn{margin-top:.8rem;background:var(--blurple);color:#fff;border:none;font-size:1.02rem;font-weight:700;padding:.5rem 1.25rem;border-radius:10px;cursor:pointer;font-family:inherit;}
+  .reveal-btn:hover{background:#5249e0;}
+  .practice{background:linear-gradient(135deg,#0a2540,#1a1f4d);color:#fff;border-radius:16px;padding:1.2rem 1.5rem;}
+  .practice .p-tag{display:inline-flex;align-items:center;gap:.5rem;color:var(--cyan);font-weight:800;font-size:1.02rem;margin-bottom:.5rem;}
+  .practice p{color:#d4dff0;font-size:1.12rem;line-height:1.5;}
+  .practice code{background:rgba(0,212,255,.14);color:#7fe9ff;padding:.15em .5em;border-radius:6px;font-family:"SF Mono",monospace;font-size:.95em;}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .compare.three{grid-template-columns:1fr 1fr 1fr;}
+  .compare .col{padding:1.2rem 1.4rem;}
+  .compare .col.old{background:#fff;}
+  .compare .col.new{background:linear-gradient(135deg,#f0f1ff,#faf5ff);}
+  .compare .col h4{font-size:1.18rem;font-weight:800;margin-bottom:.7rem;}
+  .compare .col.old h4{color:var(--slate-2);}
+  .compare .col.new h4{color:var(--blurple);}
+  .compare .col p{font-size:1.05rem;line-height:1.42;margin-bottom:.5rem;}
+  .note{font-size:1.02rem;color:var(--slate-2);margin-top:.75rem;line-height:1.48;}
+  .note b{color:var(--navy);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem;align-items:center;}
+  .stack{display:flex;flex-direction:column;gap:.9rem;}
+  .flow{display:flex;align-items:stretch;gap:.5rem;margin:.4rem 0;flex-wrap:wrap;}
+  .flow .step{flex:1;min-width:110px;background:var(--grad);color:#fff;border-radius:14px;padding:.85rem .7rem;text-align:center;box-shadow:0 6px 18px rgba(99,91,255,.22);}
+  .flow .step .n{font-size:1.05rem;font-weight:800;}
+  .flow .step .s{font-size:.82rem;opacity:.9;margin-top:.15rem;}
+  .flow .arr{display:flex;align-items:center;font-size:1.4rem;color:var(--blurple);font-weight:800;}
+  table.simple{border-collapse:collapse;width:100%;font-size:1.0rem;}
+  table.simple th,table.simple td{border:1px solid var(--line);padding:.5rem .6rem;text-align:center;}
+  table.simple th{background:#f0f1ff;color:var(--navy);font-weight:800;}
+  table.simple td{color:var(--slate);}
+  table.simple tr:nth-child(even) td{background:#fafbfd;}
+  table.simple .hi{color:var(--blurple);font-weight:800;}
+  table.simple td.l,table.simple th.l{text-align:left;}
+  .matrix{display:flex;align-items:center;gap:1.1rem;justify-content:center;flex-wrap:wrap;}
+  .matrix .m{background:#fff;border:1px solid var(--line);border-radius:12px;padding:.9rem 1.1rem;text-align:center;box-shadow:0 2px 8px rgba(10,37,64,.05);}
+  .matrix .m .big{font-size:1.5rem;font-weight:800;color:var(--blurple);}
+  .matrix .m .lab{font-size:.9rem;color:var(--slate-2);margin-top:.3rem;}
+  .matrix .op{font-size:1.8rem;font-weight:800;color:var(--blurple);}
+  #progress{position:fixed;top:0;left:0;height:4px;background:var(--grad);z-index:100;transition:width .35s ease;}
+  #hud{position:fixed;bottom:1.4vh;right:2vw;z-index:100;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem .9rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  #hud .counter{font-size:.95rem;font-weight:700;color:var(--slate);font-variant-numeric:tabular-nums;}
+  #hud button{border:none;background:transparent;cursor:pointer;font-size:1.3rem;color:var(--blurple);width:30px;height:30px;border-radius:50%;line-height:1;display:flex;align-items:center;justify-content:center;}
+  #hud button:hover{background:#eef0ff;}
+  #sectionlabel{position:fixed;bottom:1.4vh;left:2vw;z-index:100;font-size:.95rem;font-weight:700;color:var(--slate-2);background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem 1rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  .hint{position:fixed;bottom:1.4vh;left:50%;transform:translateX(-50%);z-index:100;font-size:.85rem;color:#8aa0b8;}
+  @media (max-width:1100px){h2.slide-title{font-size:1.85rem;}.slide.cover h1{font-size:2.5rem;}.slide.section h2{font-size:2.2rem;}.lead{font-size:1.18rem;}.grid-3,.grid-4{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="deck">
+
+<!-- 1 COVER -->
+<section class="slide cover active">
+  <div class="chapter-tag">CHAPTER 09</div>
+  <h1>추천 시스템<br><span style="font-size:2.1rem;font-weight:700;color:#c5d2e0">Recommendation</span></h1>
+  <p class="sub">넷플릭스·유튜브·쿠팡은 어떻게 내 취향을 알까요? <b style="color:#fff">콘텐츠 기반·협업 필터링·행렬 분해</b>로, 데이터가 어떻게 "당신을 위한 추천"을 만드는지 파헤칩니다.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 강의자료</div>
+</section>
+
+<!-- 2 복습+목표 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>8장 복습 & 9장 목표</div>
+  <h2 class="slide-title">우리는 이미 추천의 핵심 도구를 배웠다</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <div class="card"><h3>✅ 8장에서</h3><p><b>코사인 유사도</b>로 "두 문서가 얼마나 닮았나"를 쟀습니다.</p></div>
+        <div class="card accent"><h3>🎯 9장에서</h3><p>그 유사도로 <b>"비슷한 영화/사용자"</b>를 찾아 추천합니다. 8장 도구가 그대로 쓰여요!</p></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 왜 추천 시스템인가</div>
+        <p>상품·콘텐츠가 무한히 많은 시대, <b>"고를 게 너무 많아 못 고르는"</b> 문제가 생겼습니다. 추천 시스템은 사용자가 좋아할 만한 걸 <b>먼저 골라 보여줘</b> 매출·만족도를 끌어올리는 핵심 기술. 넷플릭스 시청의 80%가 추천에서 나온다고 해요.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 목차 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>9장의 큰 흐름</div>
+  <h2 class="slide-title">오늘의 지도</h2>
+  <div class="body-content">
+    <ul class="clean">
+      <li><b>추천 시스템 개요</b> — 왜 중요한가, 추천의 두 갈래</li>
+      <li><b>콘텐츠 기반 필터링</b> — "이거랑 비슷한 거" 추천 (TMDB 영화)</li>
+      <li><b>최근접 이웃 협업 필터링</b> — "취향 비슷한 사람이 본 거" 추천</li>
+      <li><b>잠재 요인 협업 필터링</b> — 행렬 분해로 숨은 취향 찾기</li>
+      <li><b>Surprise 패키지</b> — 추천 전용 라이브러리</li>
+    </ul>
+  </div>
+</section>
+
+<!-- SECTION 1 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 01</div>
+  <h2>추천 시스템 개요</h2>
+  <p class="sec-desc">추천에는 크게 두 가지 길이 있습니다. 그 큰 그림부터 잡습니다.</p>
+</section>
+
+<!-- 5 추천 유형 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>추천의 두 갈래</div>
+  <h2 class="slide-title">무엇을 근거로 추천할까?</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col new">
+        <h4>콘텐츠 기반 필터링</h4>
+        <p><b>아이템의 속성</b>이 비슷한 걸 추천</p>
+        <p>"액션 영화 봤네? → 다른 액션 영화"</p>
+        <p>아이템 정보(장르·키워드)만 있으면 OK</p>
+      </div>
+      <div class="col new">
+        <h4>협업 필터링</h4>
+        <p><b>사용자들의 평점 패턴</b>으로 추천</p>
+        <p>"너랑 취향 비슷한 사람이 이것도 봤어"</p>
+        <p>다른 사용자들의 행동 데이터 활용</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 책 추천</div>
+      <p><b>콘텐츠 기반</b>: "이 책이 SF니까, 다른 SF 책 추천". <b>협업 필터링</b>: "당신과 독서 취향이 닮은 사람들이 이 책도 좋아했어요". 실무에선 <b>둘을 섞어(하이브리드)</b> 쓰는 경우가 많습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 협업필터링 두 종류 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>협업 필터링의 두 방식</div>
+  <h2 class="slide-title">협업 필터링도 둘로 나뉜다</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card accent"><h3>👥 최근접 이웃 방식</h3><p>평점 데이터에서 <b>유사도를 직접 계산</b>. 사용자 기반 / 아이템 기반. 직관적이고 구현이 쉬움.</p></div>
+      <div class="card accent"><h3>🔮 잠재 요인 방식</h3><p><b>행렬 분해</b>로 숨은 취향 요인을 추출. 대규모 데이터에 강하고 정확. 넷플릭스가 쓴 방식.</p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 큰 그림 정리</div>
+      <p>이 장의 구조: <b>콘텐츠 기반</b> → <b>협업 필터링(최근접 이웃)</b> → <b>협업 필터링(잠재 요인=행렬 분해)</b>. 점점 정교해지는 순서로 배웁니다. 헷갈리면 이 지도를 떠올리세요!</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7 퀴즈 1 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>개요 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="2">
+      <span class="q-tag">QUIZ 01</span>
+      <div class="q">"<b>당신과 취향이 비슷한 사용자들</b>이 좋아한 영화를 추천"하는 방식은?</div>
+      <div class="opts">
+        <div class="opt">① 콘텐츠 기반 필터링 (아이템 속성)</div>
+        <div class="opt">② 무작위 추천</div>
+        <div class="opt">③ 협업 필터링 (사용자 평점 패턴)</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ③  협업 필터링</b> — 다른 사용자들의 평점·행동 패턴을 협업적으로 활용합니다. 콘텐츠 기반은 아이템 자체의 속성(장르 등)을 봐요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 02 · 05</div>
+  <h2>콘텐츠 기반 필터링</h2>
+  <p class="sec-desc">"이 영화랑 비슷한 영화"를 추천. 8장의 벡터화와 코사인 유사도가 활약합니다.</p>
+</section>
+
+<!-- 9 콘텐츠 기반 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>콘텐츠 기반 개념</div>
+  <h2 class="slide-title">아이템의 '내용'으로 닮은 것 찾기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>아이템의 속성(장르·키워드 등)을 <b>벡터로</b></li>
+          <li>아이템끼리 <b>코사인 유사도</b> 계산</li>
+          <li>가장 비슷한 아이템을 추천</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 음악 추천</div>
+        <p>"잔잔한 발라드"를 들으면, <b>장르·분위기·악기가 비슷한 다른 곡</b>을 추천하는 것. 다른 사람의 취향은 전혀 보지 않고, <b>오직 콘텐츠 자체의 닮음</b>만 봅니다.</p>
+      </div>
+    </div>
+    <p class="note">📌 장점: <b>새 사용자에게도</b> 바로 추천 가능(다른 사용자 데이터 불필요). 단점: 비슷한 것만 추천돼 <b>다양성이 부족</b>할 수 있음.</p>
+  </div>
+</section>
+
+<!-- 10 TMDB 실습 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>실습 · TMDB 5000 영화</div>
+  <h2 class="slide-title">장르로 비슷한 영화 추천하기</h2>
+  <div class="body-content">
+    <div class="flow">
+      <div class="step"><div class="n">① 장르 추출</div><div class="s">[액션, SF...]</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">② 벡터화</div><div class="s">CountVectorizer</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">③ 코사인 유사도</div><div class="s">영화 간 닮음</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">④ 추천</div><div class="s">유사도 높은 순</div></div>
+    </div>
+    <div class="code sm" style="margin-top:1.2rem"><span class="cm"># 장르 문자열을 벡터화한 뒤 영화 간 유사도 계산</span>
+genre_sim = <span class="fn">cosine_similarity</span>(genre_mat, genre_mat)
+<span class="cm"># '대부'와 비슷한 영화 → 같은 범죄/드라마 장르 영화들 추천</span></div>
+    <p class="note" style="margin-top:.9rem">🔑 8장에서 배운 <b>CountVectorizer + 코사인 유사도</b>가 그대로! 텍스트 분석 기술이 추천으로 이어집니다.</p>
+  </div>
+</section>
+
+<!-- SECTION 3 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 03 · 06</div>
+  <h2>최근접 이웃 협업 필터링</h2>
+  <p class="sec-desc">사용자들의 '평점'만으로 추천. 아이템 정보가 없어도 됩니다.</p>
+</section>
+
+<!-- 12 협업 필터링 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>협업 필터링 개념</div>
+  <h2 class="slide-title">평점 행렬 — 추천의 출발점</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <table class="simple">
+          <tr><th></th><th>영화A</th><th>영화B</th><th>영화C</th></tr>
+          <tr><td class="hi">나</td><td>5</td><td>?</td><td>4</td></tr>
+          <tr><td class="hi">철수</td><td>5</td><td>4</td><td>4</td></tr>
+          <tr><td class="hi">영희</td><td>1</td><td>2</td><td>1</td></tr>
+        </table>
+        <p class="note">철수는 나와 평점이 비슷 → 철수가 4점 준 영화B를 나에게 추천!</p>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 입맛 비슷한 친구</div>
+        <p>나와 <b>입맛이 비슷한 친구</b>가 강력 추천한 맛집은 나도 좋아할 확률이 높죠. 협업 필터링은 이 <b>"끼리끼리 통한다"</b>는 집단 지성을 이용합니다. 빈칸(?)을 채우는 게 목표예요.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 사용자 vs 아이템 기반 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>사용자 기반 vs 아이템 기반</div>
+  <h2 class="slide-title">두 가지 최근접 이웃 방식</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col old">
+        <h4>사용자 기반</h4>
+        <p>"너랑 <b>비슷한 사용자</b>가 본 것"</p>
+        <p>나와 닮은 사람을 찾아 추천</p>
+      </div>
+      <div class="col new">
+        <h4>아이템 기반 ⭐</h4>
+        <p>"이 영화 본 사람들이 <b>함께 본 영화</b>"</p>
+        <p>실무에서 더 정확하고 안정적 → 주로 사용</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · "이 상품을 산 사람들이..."</div>
+      <p>쇼핑몰의 <b>"이 상품을 구매한 분들이 함께 본 상품"</b>이 바로 아이템 기반 협업 필터링! 사용자 취향은 자주 변하지만 <b>아이템 간 관계는 안정적</b>이라, 실무에선 아이템 기반을 더 많이 씁니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 14 아이템 기반 실습 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>실습 · 아이템 기반 협업 필터링</div>
+  <h2 class="slide-title">영화 간 유사도로 추천</h2>
+  <div class="body-content">
+    <div class="code sm"><span class="cm"># ① 사용자-영화 평점 행렬 만들기 (pivot_table)</span>
+ratings_matrix = ratings.<span class="fn">pivot_table</span>(<span class="st">'rating'</span>, index=<span class="st">'userId'</span>, columns=<span class="st">'title'</span>).<span class="fn">fillna</span>(<span class="nm">0</span>)
+
+<span class="cm"># ② 영화 간 코사인 유사도 (행렬을 전치 후 계산)</span>
+item_sim = <span class="fn">cosine_similarity</span>(ratings_matrix.T, ratings_matrix.T)
+<span class="cm"># → '내가 본 영화와 비슷한 영화' 중 안 본 것을 추천</span></div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 또 코사인 유사도!</div>
+      <p>콘텐츠 기반에선 '장르 벡터'로, 협업 필터링에선 '평점 벡터'로 유사도를 잽니다. <b>대상만 다를 뿐 같은 도구(코사인 유사도)</b>예요. 한 번 배운 개념이 계속 재활용되죠.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 15 퀴즈 2 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>협업 필터링 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="1">
+      <span class="q-tag">QUIZ 02</span>
+      <div class="q">쇼핑몰의 <b>"이 상품을 구매한 분들이 함께 본 상품"</b>은 어떤 추천 방식일까요?</div>
+      <div class="opts">
+        <div class="opt">① 콘텐츠 기반 필터링</div>
+        <div class="opt">② 아이템 기반 협업 필터링</div>
+        <div class="opt">③ 무작위 추천</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ②  아이템 기반 협업 필터링</b> — 함께 구매/시청된 패턴(아이템 간 관계)을 이용합니다. 가장 흔히 보는 추천 형태예요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 04 · 07</div>
+  <h2>잠재 요인 협업 필터링 — 행렬 분해</h2>
+  <p class="sec-desc">평점 뒤에 숨은 '취향 요인'을 수학으로 찾아냅니다. 넷플릭스 우승의 비결.</p>
+</section>
+
+<!-- 17 잠재 요인 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>잠재 요인이란</div>
+  <h2 class="slide-title">평점 뒤에 숨은 '취향 요인'</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <p style="font-size:1.2rem">사람들이 영화에 준 평점 뒤에는 <b>'얼마나 액션을 좋아하나', '로맨스 선호도'</b> 같은 숨은 요인이 있습니다. 이걸 <b>잠재 요인</b>이라 해요.</p>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · MBTI 같은 숨은 성향</div>
+        <p>겉으로 드러난 행동(평점) 뒤엔 <b>드러나지 않은 성향(잠재 요인)</b>이 있죠. 사용자의 '액션 선호도'와 영화의 '액션 정도'가 맞으면 높은 평점! 이 숨은 요인을 찾으면 <b>안 본 영화 평점도 예측</b>할 수 있습니다.</p>
+      </div>
+    </div>
+    <p class="note">🔑 어떻게 찾을까? → 평점 행렬을 <b>두 개의 작은 행렬로 쪼개는</b> '행렬 분해'로! (6장 SVD의 연장선)</p>
+  </div>
+</section>
+
+<!-- 18 행렬 분해 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>행렬 분해</div>
+  <h2 class="slide-title">R ≈ P × Q — 빈칸까지 채우는 마법</h2>
+  <div class="body-content">
+    <div class="matrix">
+      <div class="m"><div class="big">R</div><div class="lab">평점 행렬<br>(빈칸 많음)</div></div>
+      <div class="op">≈</div>
+      <div class="m"><div class="big">P</div><div class="lab">사용자-요인</div></div>
+      <div class="op">×</div>
+      <div class="m"><div class="big">Qᵀ</div><div class="lab">아이템-요인</div></div>
+    </div>
+    <div class="analogy" style="margin-top:1.5rem">
+      <div class="tag">💡 비유 · 빈칸 추론</div>
+      <p>구멍 뚫린 평점표(R)를 <b>'사용자 성향(P)'과 '아이템 특성(Q)'</b> 두 표로 분해합니다. 그럼 두 표를 다시 곱해 <b>빈칸(안 본 영화의 평점)까지 추정</b>할 수 있어요! 이 추정 평점이 높은 영화를 추천합니다.</p>
+    </div>
+    <p class="note">📌 잠재 요인 개수 <b>K</b>를 정해 P, Q의 크기를 결정합니다. (예: K=3개 요인)</p>
+  </div>
+</section>
+
+<!-- 19 SGD 행렬분해 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>경사 하강법으로 분해</div>
+  <h2 class="slide-title">P와 Q를 어떻게 찾을까?</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>P, Q를 <b>랜덤값으로 시작</b></li>
+          <li>실제 평점과 예측(P×Q) 오차를 <b>경사 하강법</b>으로 줄임</li>
+          <li>반복하면 빈칸을 잘 채우는 P, Q 완성</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 5장과 연결!</div>
+        <p>P, Q를 찾는 방법이 바로 <b>경사 하강법(5장)</b>입니다. "오차를 줄이는 방향으로 조금씩 수정"하는 그 원리 그대로예요. 머신러닝의 핵심 도구가 추천에서도 또 등장합니다.</p>
+      </div>
+    </div>
+    <div class="code sm" style="margin-top:1.1rem"><span class="kw">def</span> <span class="fn">matrix_factorization</span>(R, K, steps=<span class="nm">200</span>, learning_rate=<span class="nm">0.01</span>):
+    <span class="cm"># P, Q를 경사 하강으로 업데이트하며 R의 빈칸을 학습</span></div>
+  </div>
+</section>
+
+<!-- 20 퀴즈 3 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>행렬 분해 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="2">
+      <span class="q-tag">QUIZ 03</span>
+      <div class="q">행렬 분해 기반 잠재 요인 협업 필터링의 핵심 아이디어는?</div>
+      <div class="opts">
+        <div class="opt">① 영화의 장르 텍스트만으로 추천한다</div>
+        <div class="opt">② 평점을 무작위로 채운다</div>
+        <div class="opt">③ 평점 행렬을 두 행렬로 분해해 빈칸(안 본 평점)을 예측한다</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ③</b> — R ≈ P × Q로 분해해 숨은 잠재 요인을 찾고, 이를 곱해 빈칸 평점을 예측합니다. 예측 평점이 높은 아이템을 추천해요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 5 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 08</div>
+  <h2>Surprise — 추천 전용 패키지</h2>
+  <p class="sec-desc">복잡한 행렬 분해를, 사이킷런처럼 쉽게. 추천 시스템의 도구상자.</p>
+</section>
+
+<!-- 22 Surprise -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>Surprise 패키지</div>
+  <h2 class="slide-title">추천을 fit/predict로 — Surprise</h2>
+  <div class="body-content">
+    <div class="code"><span class="kw">from</span> surprise <span class="kw">import</span> SVD, Dataset, accuracy
+<span class="kw">from</span> surprise.model_selection <span class="kw">import</span> train_test_split
+
+data = Dataset.<span class="fn">load_builtin</span>(<span class="st">'ml-100k'</span>)      <span class="cm"># 영화 평점 데이터</span>
+trainset, testset = <span class="fn">train_test_split</span>(data, test_size=<span class="nm">0.25</span>)
+
+algo = <span class="fn">SVD</span>()                  <span class="cm"># 행렬 분해 알고리즘</span>
+algo.<span class="fn">fit</span>(trainset)            <span class="cm"># 학습</span>
+algo.<span class="fn">predict</span>(uid, iid)        <span class="cm"># 특정 사용자의 특정 영화 평점 예측</span></div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 사이킷런과 닮은 사용법</div>
+      <p>Surprise는 추천 전용 라이브러리지만, <b>fit → predict</b> 패턴은 사이킷런과 똑같아요. 앞서 직접 구현한 행렬 분해(SVD)를 <b>한 줄로</b> 쓸 수 있게 해주고, RMSE로 평가까지 됩니다. 실무에서 추천 프로토타입을 빠르게 만들 때 유용.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 23 추천 방식 비교 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>추천 방식 총정리</div>
+  <h2 class="slide-title">한눈에 비교하기</h2>
+  <div class="body-content">
+    <table class="simple">
+      <tr><th class="l">방식</th><th class="l">근거</th><th class="l">장점</th><th class="l">단점</th></tr>
+      <tr><td class="l hi">콘텐츠 기반</td><td class="l">아이템 속성</td><td class="l">새 사용자도 OK</td><td class="l">다양성 부족</td></tr>
+      <tr><td class="l hi">협업 (최근접 이웃)</td><td class="l">평점 유사도</td><td class="l">직관적·구현 쉬움</td><td class="l">데이터 적으면 약함</td></tr>
+      <tr><td class="l hi">협업 (잠재 요인)</td><td class="l">행렬 분해</td><td class="l">정확·대규모에 강함</td><td class="l">해석 어려움</td></tr>
+    </table>
+    <div class="analogy" style="margin-top:1.2rem">
+      <div class="tag">💡 실무에선?</div>
+      <p>정답은 하나가 아니에요. 보통 <b>여러 방식을 결합(하이브리드)</b>하고, <b>콜드 스타트</b>(데이터 없는 새 사용자/아이템) 문제를 콘텐츠 기반으로 보완합니다. 넷플릭스·유튜브도 수십 개 모델의 조합이에요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 정리 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>9장 핵심 정리</div>
+  <h2 class="slide-title">오늘의 한 페이지 요약</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card accent"><h3><span class="ico">🎬</span>콘텐츠 기반</h3><p>아이템 속성(장르 등)을 벡터화 → <b>코사인 유사도</b>로 비슷한 것 추천.</p></div>
+      <div class="card accent"><h3><span class="ico">👥</span>협업 (최근접 이웃)</h3><p>평점 행렬의 유사도. <b>아이템 기반</b>이 실무 단골("함께 본 상품").</p></div>
+      <div class="card accent"><h3><span class="ico">🔮</span>협업 (잠재 요인)</h3><p><b>행렬 분해(R≈P×Q)</b>로 빈칸 평점 예측. 경사 하강법 활용.</p></div>
+      <div class="card accent"><h3><span class="ico">🛠️</span>Surprise</h3><p>추천 전용 패키지. <b>fit/predict</b>로 SVD 추천을 간편하게.</p></div>
+    </div>
+    <p class="note" style="margin-top:1.2rem">✅ 추천 시스템은 <b>유사도(8장)·행렬 분해(6장)·경사 하강법(5장)</b>의 종합 예술입니다. 앞에서 배운 것들이 여기서 다 모였어요!</p>
+  </div>
+</section>
+
+<!-- 마무리 -->
+<section class="slide cover">
+  <div class="chapter-tag">NEXT · CHAPTER 10</div>
+  <h1>마지막은,<br>'보여주기' 📊</h1>
+  <p class="sub">아무리 좋은 분석도 <b style="color:#fff">잘 보여주지 못하면 소용없죠.</b> 마지막 장 <b style="color:#fff">시각화</b>에서 Matplotlib·Seaborn으로 데이터를 설득력 있는 그래프로 표현하는 법을 배웁니다.</p>
+  <p class="sub" style="margin-top:1.3rem;font-size:1.22rem;color:#9fb3c8">💪 숙제: TMDB 영화 데이터로 좋아하는 영화 1편과 비슷한 영화 5편을 콘텐츠 기반으로 추천해 보기.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 9장 끝 · 수고했습니다!</div>
+</section>
+
+</div>
+
+<div id="sectionlabel">9장 · 추천 시스템</div>
+<div class="hint">← → 또는 스페이스로 이동 · F 전체화면</div>
+<div id="hud">
+  <button onclick="go(-1)" aria-label="이전">‹</button>
+  <span class="counter"><span id="cur">1</span> / <span id="total">1</span></span>
+  <button onclick="go(1)" aria-label="다음">›</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+  function render(){
+    slides.forEach((s,i)=>s.classList.toggle('active', i===idx));
+    document.getElementById('cur').textContent = idx+1;
+    document.getElementById('progress').style.width = ((idx+1)/slides.length*100)+'%';
+  }
+  function go(d){const n=idx+d;if(n>=0&&n<slides.length){idx=n;render();}}
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(-1);}
+    else if(e.key==='Home'){idx=0;render();}
+    else if(e.key==='End'){idx=slides.length-1;render();}
+    else if(e.key.toLowerCase()==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+  });
+  document.getElementById('deck').addEventListener('click', e=>{
+    if(e.target.closest('.opt,.reveal-btn,button,a'))return;
+    const x=e.clientX/window.innerWidth;go(x<0.25?-1:1);
+  });
+  function revealQuiz(btn){
+    const quiz=btn.closest('.quiz');
+    const ansIdx=parseInt(quiz.dataset.answer,10);
+    const opts=quiz.querySelectorAll('.opt');
+    if(opts[ansIdx])opts[ansIdx].classList.add('reveal-correct');
+    quiz.querySelector('.answer').classList.add('show');
+    btn.style.display='none';
+  }
+  render();
+</script>
+</body>
+</html>

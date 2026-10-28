@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7장 · 군집화 (Clustering)</title>
+<style>
+  :root{
+    --blurple:#635bff;--blurple-2:#7a73ff;--cyan:#00d4ff;--pink:#ff7eb3;
+    --navy:#0a2540;--slate:#425466;--slate-2:#697386;--bg:#f6f9fc;--card:#ffffff;--line:#e6ebf1;
+    --code-bg:#0a1530;
+    --grad:linear-gradient(118deg,#635bff 0%,#7a73ff 38%,#00d4ff 100%);
+    --grad-warm:linear-gradient(118deg,#635bff 0%,#a855f7 50%,#ff7eb3 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#0a2540;color:var(--navy);overflow:hidden;-webkit-font-smoothing:antialiased;}
+  #deck{position:fixed;inset:0;}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;padding:5.2vh 6.5vw 6vh;background:var(--bg);overflow:hidden;}
+  .slide.active{display:flex;animation:fade .45s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  .slide::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--grad);}
+  .slide.dark::before{display:none;}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:700;color:var(--blurple);margin-bottom:1.1rem;}
+  .kicker .dot{width:9px;height:9px;border-radius:50%;background:var(--grad);}
+  h2.slide-title{font-size:2.15rem;line-height:1.18;font-weight:800;letter-spacing:-.02em;color:var(--navy);margin-bottom:1.4rem;}
+  .lead{font-size:1.42rem;line-height:1.6;color:var(--slate);max-width:62ch;}
+  .body-content{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;}
+  p{font-size:1.22rem;line-height:1.62;color:var(--slate);}
+  .grad-text{background:var(--grad-warm);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .slide.cover,.slide.section{background:#0a2540;color:#fff;justify-content:center;}
+  .slide.cover::after,.slide.section::after{content:"";position:absolute;inset:0;z-index:0;
+    background:radial-gradient(60% 80% at 78% 18%,rgba(0,212,255,.32),transparent 60%),
+      radial-gradient(70% 90% at 12% 88%,rgba(168,85,247,.40),transparent 60%),
+      radial-gradient(50% 60% at 50% 50%,rgba(99,91,255,.30),transparent 70%);}
+  .slide.cover>*,.slide.section>*{position:relative;z-index:1;}
+  .slide.cover h1{font-size:3.4rem;font-weight:800;line-height:1.1;letter-spacing:-.03em;color:#fff;margin-bottom:1.4rem;}
+  .slide.cover .sub{font-size:1.48rem;color:#c5d2e0;font-weight:500;max-width:64ch;line-height:1.55;}
+  .slide.cover .chapter-tag{display:inline-block;font-size:1.1rem;font-weight:700;color:#fff;background:var(--grad);padding:.5rem 1.2rem;border-radius:999px;margin-bottom:1.8rem;}
+  .slide.cover .footer-note{position:absolute;bottom:6vh;left:6.5vw;color:#8aa0b8;font-size:1rem;z-index:1;}
+  .slide.section .sec-num{font-size:1.3rem;font-weight:700;color:var(--cyan);margin-bottom:1rem;letter-spacing:.05em;}
+  .slide.section h2{font-size:2.9rem;font-weight:800;color:#fff;line-height:1.12;letter-spacing:-.02em;}
+  .slide.section .sec-desc{font-size:1.35rem;color:#c5d2e0;margin-top:1.3rem;max-width:60ch;line-height:1.55;}
+  .grid{display:grid;gap:1.2rem;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:1.3rem 1.45rem;box-shadow:0 2px 10px rgba(10,37,64,.05);}
+  .card h3{font-size:1.3rem;font-weight:750;color:var(--navy);margin-bottom:.5rem;display:flex;align-items:center;gap:.6rem;}
+  .card p{font-size:1.08rem;line-height:1.48;color:var(--slate);}
+  .card .ico{font-size:1.45rem;}
+  .card.accent{border-top:4px solid transparent;border-image:var(--grad) 1;}
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:.85rem;}
+  ul.clean li{font-size:1.24rem;line-height:1.5;color:var(--slate);padding-left:2rem;position:relative;}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.5em;width:11px;height:11px;border-radius:3px;background:var(--grad);}
+  ul.clean li b{color:var(--navy);font-weight:750;}
+  .code{background:var(--code-bg);border-radius:14px;padding:1.05rem 1.3rem;font-family:"SF Mono","JetBrains Mono",Consolas,monospace;font-size:1.0rem;line-height:1.6;color:#e2e8f0;overflow:auto;box-shadow:0 8px 30px rgba(10,21,48,.35);}
+  .code.sm{font-size:.92rem;}
+  .code .cm{color:#7c89a8;font-style:italic;}
+  .code .kw{color:#ff7eb3;}.code .fn{color:#00d4ff;}.code .st{color:#9be6a8;}.code .nm{color:#ffd479;}.code .out{color:#7c89a8;}
+  .code-label{font-size:.95rem;font-weight:700;color:var(--slate-2);margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;}
+  .code-label::before{content:"▸";color:var(--blurple);}
+  .analogy{background:linear-gradient(135deg,#f0f1ff,#fdf2f8);border:1px solid #e3e0ff;border-left:5px solid var(--blurple);border-radius:14px;padding:1.05rem 1.35rem;}
+  .analogy .tag{font-size:.95rem;font-weight:800;color:var(--blurple);margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem;}
+  .analogy p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .analogy p b{color:var(--blurple);}
+  .warn{background:linear-gradient(135deg,#fffbeb,#fff7ed);border:1px solid #fde68a;border-left:5px solid #f59e0b;border-radius:14px;padding:1.05rem 1.35rem;}
+  .warn .tag{font-size:.95rem;font-weight:800;color:#b45309;margin-bottom:.35rem;}
+  .warn p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .warn p b{color:#b45309;}
+  .quiz{background:#fff;border:2px dashed var(--blurple-2);border-radius:18px;padding:1.4rem 1.6rem;}
+  .quiz .q-tag{display:inline-flex;align-items:center;gap:.5rem;background:var(--grad);color:#fff;font-weight:700;font-size:1rem;padding:.35rem 1rem;border-radius:999px;margin-bottom:.9rem;}
+  .quiz .q{font-size:1.35rem;font-weight:700;color:var(--navy);line-height:1.45;margin-bottom:1rem;}
+  .quiz .opts{display:flex;flex-direction:column;gap:.55rem;}
+  .quiz .opt{font-size:1.15rem;color:var(--slate);padding:.6rem 1.1rem;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;transition:.18s;}
+  .quiz .opt:hover{border-color:var(--blurple-2);background:#f7f7ff;}
+  .quiz .opt.reveal-correct{border-color:#22c55e;background:#f0fdf4;color:#15803d;font-weight:700;}
+  .quiz .answer{margin-top:.9rem;font-size:1.1rem;color:var(--slate);display:none;}
+  .quiz .answer.show{display:block;animation:fade .3s;}
+  .quiz .answer b{color:#15803d;}
+  .reveal-btn{margin-top:.8rem;background:var(--blurple);color:#fff;border:none;font-size:1.02rem;font-weight:700;padding:.5rem 1.25rem;border-radius:10px;cursor:pointer;font-family:inherit;}
+  .reveal-btn:hover{background:#5249e0;}
+  .practice{background:linear-gradient(135deg,#0a2540,#1a1f4d);color:#fff;border-radius:16px;padding:1.2rem 1.5rem;}
+  .practice .p-tag{display:inline-flex;align-items:center;gap:.5rem;color:var(--cyan);font-weight:800;font-size:1.02rem;margin-bottom:.5rem;}
+  .practice p{color:#d4dff0;font-size:1.12rem;line-height:1.5;}
+  .practice code{background:rgba(0,212,255,.14);color:#7fe9ff;padding:.15em .5em;border-radius:6px;font-family:"SF Mono",monospace;font-size:.95em;}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .compare.three{grid-template-columns:1fr 1fr 1fr;}
+  .compare .col{padding:1.2rem 1.4rem;}
+  .compare .col.old{background:#fff;}
+  .compare .col.new{background:linear-gradient(135deg,#f0f1ff,#faf5ff);}
+  .compare .col h4{font-size:1.18rem;font-weight:800;margin-bottom:.7rem;}
+  .compare .col.old h4{color:var(--slate-2);}
+  .compare .col.new h4{color:var(--blurple);}
+  .compare .col p{font-size:1.05rem;line-height:1.42;margin-bottom:.5rem;}
+  .note{font-size:1.02rem;color:var(--slate-2);margin-top:.75rem;line-height:1.48;}
+  .note b{color:var(--navy);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem;align-items:center;}
+  .stack{display:flex;flex-direction:column;gap:.9rem;}
+  .flow{display:flex;align-items:stretch;gap:.5rem;margin:.4rem 0;flex-wrap:wrap;}
+  .flow .step{flex:1;min-width:110px;background:var(--grad);color:#fff;border-radius:14px;padding:.85rem .7rem;text-align:center;box-shadow:0 6px 18px rgba(99,91,255,.22);}
+  .flow .step .n{font-size:1.05rem;font-weight:800;}
+  .flow .step .s{font-size:.82rem;opacity:.9;margin-top:.15rem;}
+  .flow .arr{display:flex;align-items:center;font-size:1.4rem;color:var(--blurple);font-weight:800;}
+  table.simple{border-collapse:collapse;width:100%;font-size:1.02rem;}
+  table.simple th,table.simple td{border:1px solid var(--line);padding:.5rem .65rem;text-align:center;}
+  table.simple th{background:#f0f1ff;color:var(--navy);font-weight:800;}
+  table.simple td{color:var(--slate);}
+  table.simple tr:nth-child(even) td{background:#fafbfd;}
+  table.simple .hi{color:var(--blurple);font-weight:800;}
+  table.simple td.l,table.simple th.l{text-align:left;}
+  #progress{position:fixed;top:0;left:0;height:4px;background:var(--grad);z-index:100;transition:width .35s ease;}
+  #hud{position:fixed;bottom:1.4vh;right:2vw;z-index:100;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem .9rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  #hud .counter{font-size:.95rem;font-weight:700;color:var(--slate);font-variant-numeric:tabular-nums;}
+  #hud button{border:none;background:transparent;cursor:pointer;font-size:1.3rem;color:var(--blurple);width:30px;height:30px;border-radius:50%;line-height:1;display:flex;align-items:center;justify-content:center;}
+  #hud button:hover{background:#eef0ff;}
+  #sectionlabel{position:fixed;bottom:1.4vh;left:2vw;z-index:100;font-size:.95rem;font-weight:700;color:var(--slate-2);background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem 1rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  .hint{position:fixed;bottom:1.4vh;left:50%;transform:translateX(-50%);z-index:100;font-size:.85rem;color:#8aa0b8;}
+  @media (max-width:1100px){h2.slide-title{font-size:1.85rem;}.slide.cover h1{font-size:2.5rem;}.slide.section h2{font-size:2.2rem;}.lead{font-size:1.18rem;}.grid-3,.grid-4{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="deck">
+
+<!-- 1 COVER -->
+<section class="slide cover active">
+  <div class="chapter-tag">CHAPTER 07</div>
+  <h1>군집화<br><span style="font-size:2.1rem;font-weight:700;color:#c5d2e0">Clustering</span></h1>
+  <p class="sub">정답 라벨 없이, 데이터 스스로 <b style="color:#fff">비슷한 것끼리 묶게</b> 합니다. K-평균·평균 이동·GMM·DBSCAN으로 숨은 그룹을 찾고, 실제 <b style="color:#fff">고객 세그먼테이션</b>까지 해봅니다.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 강의자료</div>
+</section>
+
+<!-- 2 복습+목표 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>6장 복습 & 7장 목표</div>
+  <h2 class="slide-title">비지도학습, 두 번째 이야기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <div class="card"><h3>✅ 6장 (차원 축소)</h3><p>정답 없이 데이터를 <b>압축</b>했습니다. 그것도 비지도학습이었죠.</p></div>
+        <div class="card accent"><h3>🎯 7장 (군집화)</h3><p>정답 없이 <b>비슷한 데이터끼리 그룹으로 묶습니다.</b> "이 손님들은 비슷한 부류네!"</p></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 처음 간 파티</div>
+        <p>아무도 모르는 파티장에서, 누가 누구인지(정답) 몰라도 <b>대화·옷차림이 비슷한 사람끼리 자연스레 무리가 생기죠.</b> 군집화는 데이터에서 이런 <b>자연스러운 무리</b>를 자동으로 찾는 기술입니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 목차 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>7장의 큰 흐름</div>
+  <h2 class="slide-title">오늘의 지도</h2>
+  <div class="body-content">
+    <ul class="clean">
+      <li><b>K-평균</b> — 가장 대표적인 군집화. 중심점을 찾아 묶기</li>
+      <li><b>군집 평가</b> — 정답이 없는데 잘 묶였는지 어떻게 알까? (실루엣)</li>
+      <li><b>평균 이동</b> — 데이터가 밀집한 곳을 찾아 묶기</li>
+      <li><b>GMM</b> — 확률 분포로 부드럽게 묶기 (K-평균과 비교)</li>
+      <li><b>DBSCAN</b> — 밀도 기반, 복잡한 모양도 OK</li>
+      <li><b>실습</b> — 온라인 쇼핑몰 고객 세그먼테이션 (RFM)</li>
+    </ul>
+  </div>
+</section>
+
+<!-- SECTION 1 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 01</div>
+  <h2>K-평균 알고리즘</h2>
+  <p class="sec-desc">군집화의 출발점이자 가장 널리 쓰이는 알고리즘. 중심점을 옮겨가며 그룹을 만듭니다.</p>
+</section>
+
+<!-- 5 군집화란 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>군집화란</div>
+  <h2 class="slide-title">분류와 군집화, 헷갈리지 말기</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col old">
+        <h4>분류 (4장, 지도학습)</h4>
+        <p>정답(라벨)이 <b>있음</b></p>
+        <p>"이건 개, 이건 고양이" 미리 배움</p>
+      </div>
+      <div class="col new">
+        <h4>군집화 (7장, 비지도학습)</h4>
+        <p>정답이 <b>없음</b></p>
+        <p>"비슷한 것끼리" 스스로 묶음</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 빨래 정리</div>
+      <p><b>분류</b>는 "흰옷 칸·색옷 칸이 정해져 있고 거기 맞춰 넣기". <b>군집화</b>는 "정해진 칸 없이, <b>비슷한 옷끼리 알아서 더미</b>를 만들기". 묶은 다음 "아, 이 더미는 운동복이네"라고 의미를 붙이는 건 사람의 몫이에요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 K-평균 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>K-평균</div>
+  <h2 class="slide-title">K-평균 — 중심점을 옮겨가며 묶기</h2>
+  <div class="body-content">
+    <div class="flow">
+      <div class="step"><div class="n">① 중심 K개</div><div class="s">아무 데나 찍기</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">② 할당</div><div class="s">가까운 중심에 소속</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">③ 이동</div><div class="s">중심을 무리 가운데로</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">④ 반복</div><div class="s">안 변할 때까지</div></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 비유 · 푸드트럭 위치 정하기</div>
+      <p>손님이 흩어진 광장에 푸드트럭 3대를 둘 때, ① 일단 아무 데나 세우고 → ② 손님은 가까운 트럭으로 → ③ 트럭은 모인 손님 중앙으로 이동 → ④ 반복. 결국 <b>가장 효율적인 위치(군집 중심)</b>에 자리 잡습니다.</p>
+    </div>
+    <p class="note">📌 <b>K</b> = 군집 개수(트럭 대수)로, <b>사람이 미리 정해야</b> 합니다. (이게 K-평균의 숙제!)</p>
+  </div>
+</section>
+
+<!-- 7 K-평균 코드 + 한계 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>K-평균 코드 & 한계</div>
+  <h2 class="slide-title">코드는 쉽지만, 약점도 있다</h2>
+  <div class="body-content">
+    <div class="code"><span class="kw">from</span> sklearn.cluster <span class="kw">import</span> KMeans
+
+kmeans = <span class="fn">KMeans</span>(n_clusters=<span class="nm">3</span>, init=<span class="st">'k-means++'</span>, random_state=<span class="nm">0</span>)
+kmeans.<span class="fn">fit</span>(irisDF)
+<span class="fn">print</span>(kmeans.labels_)        <span class="cm"># 각 데이터가 어느 군집인지 (0/1/2)</span></div>
+    <div class="warn" style="margin-top:1.2rem">
+      <div class="tag">⚠️ K-평균의 약점</div>
+      <p>① <b>K를 미리 정해야</b> 함 (몇 개로 묶을지 모를 때 곤란) ② 군집이 <b>'동그란 모양'이라고 가정</b> → 길쭉하거나 복잡한 모양엔 약함. 그래서 뒤의 GMM·DBSCAN이 등장합니다.</p>
+    </div>
+    <p class="note">📌 <b>k-means++</b>: 초기 중심을 똑똑하게 찍어 결과를 안정시키는 기본 옵션이에요.</p>
+  </div>
+</section>
+
+<!-- 8 퀴즈 1 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>K-평균 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="2">
+      <span class="q-tag">QUIZ 01</span>
+      <div class="q">K-평균(KMeans)에서 <b>n_clusters=3</b>의 의미는?</div>
+      <div class="opts">
+        <div class="opt">① 데이터를 3번 반복 학습한다</div>
+        <div class="opt">② 정확도를 3%까지 허용한다</div>
+        <div class="opt">③ 데이터를 3개의 군집으로 묶는다 (사람이 정함)</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ③</b> — K(군집 개수)는 사람이 미리 지정합니다. 몇 개가 적절한지 모를 땐 다음 섹션의 '실루엣 분석'으로 찾아요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 02</div>
+  <h2>군집 평가 — 실루엣 분석</h2>
+  <p class="sec-desc">정답이 없는데, 잘 묶였는지 어떻게 판단할까요? 그리고 K는 몇 개가 좋을까요?</p>
+</section>
+
+<!-- 10 평가의 어려움 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>군집 평가의 어려움</div>
+  <h2 class="slide-title">정답이 없으니 '정확도'를 못 쓴다</h2>
+  <div class="body-content">
+    <p class="lead" style="margin-bottom:1.2rem">분류는 정답과 비교해 정확도를 쟀지만, 군집화는 <b>정답이 없어요.</b> 그럼 "잘 묶였다"를 어떻게 정의할까요?</p>
+    <div class="grid grid-2">
+      <div class="card accent"><h3>👥 응집도</h3><p>같은 군집 안의 데이터끼리 <b>얼마나 가까운가</b> (뭉쳐 있을수록 좋음)</p></div>
+      <div class="card accent"><h3>↔️ 분리도</h3><p>다른 군집과 <b>얼마나 멀리 떨어졌나</b> (멀수록 좋음)</p></div>
+    </div>
+    <p class="note" style="margin-top:1.2rem">🔑 좋은 군집 = <b>"안은 빽빽하고(응집), 밖과는 멀리(분리)"</b>. 이 둘을 한 숫자로 합친 게 <b>실루엣 계수</b>입니다.</p>
+  </div>
+</section>
+
+<!-- 11 실루엣 분석 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>실루엣 분석</div>
+  <h2 class="slide-title">실루엣 계수 — -1에서 +1까지</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li><b>+1에 가까움</b>: 아주 잘 묶임 👍</li>
+          <li><b>0 근처</b>: 군집 경계에 걸침</li>
+          <li><b>음수</b>: 잘못 묶임 (다른 군집이 더 가까움)</li>
+        </ul>
+        <div class="code sm"><span class="kw">from</span> sklearn.metrics <span class="kw">import</span> silhouette_score
+<span class="fn">silhouette_score</span>(X, labels)   <span class="cm"># 전체 평균</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 동아리 소속감</div>
+        <p>"내 동아리 사람들과는 친하고(응집), 다른 동아리와는 거리가 있다(분리)"면 소속이 분명한 거죠. 실루엣 계수가 높다는 건 <b>각 데이터가 자기 군집에 잘 어울린다</b>는 뜻입니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 최적 K -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>최적의 K 찾기</div>
+  <h2 class="slide-title">K를 몇 개로 할지, 실루엣으로 결정</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <p style="font-size:1.2rem">K를 2, 3, 4, 5...로 바꿔가며 <b>실루엣 점수를 비교</b>하고, 가장 높으면서 <b>군집들이 고르게 잘 나뉘는</b> K를 고릅니다.</p>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 실무 접근</div>
+        <p>실루엣 점수만 맹신하진 않아요. <b>비즈니스적으로 의미 있는 개수</b>(예: 고객을 3~5 등급으로)인지도 함께 봅니다. 숫자 + 현실 감각의 조합!</p>
+      </div>
+    </div>
+    <p class="note">📌 군집별 실루엣 면적을 그래프로 그려, <b>크기가 들쭉날쭉하지 않고 고른</b> K가 좋은 선택입니다. (visualize_silhouette 함수)</p>
+  </div>
+</section>
+
+<!-- SECTION 3 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 03</div>
+  <h2>평균 이동 (Mean Shift)</h2>
+  <p class="sec-desc">K를 정할 필요 없이, '데이터가 가장 빽빽한 곳'을 스스로 찾아갑니다.</p>
+</section>
+
+<!-- 14 평균 이동 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>평균 이동</div>
+  <h2 class="slide-title">밀도가 높은 봉우리를 찾아서</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>데이터가 <b>가장 밀집한 곳(밀도 봉우리)</b>으로 점들이 이동</li>
+          <li>K를 정할 필요 없음 — <b>군집 수를 자동으로</b> 찾음</li>
+          <li><b>bandwidth</b>(탐색 반경)가 핵심 파라미터</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 사람 많은 쪽으로</div>
+        <p>축제장에서 눈을 감고 <b>"사람 소리가 더 큰 쪽"</b>으로 계속 걸으면 결국 가장 붐비는 곳에 도달하죠. 평균 이동은 각 점이 <b>주변에서 가장 붐비는 중심</b>으로 모여드는 방식입니다.</p>
+      </div>
+    </div>
+    <div class="code sm" style="margin-top:1.1rem"><span class="kw">from</span> sklearn.cluster <span class="kw">import</span> MeanShift, estimate_bandwidth
+bandwidth = <span class="fn">estimate_bandwidth</span>(X)        <span class="cm"># 최적 반경 자동 추정</span>
+ms = <span class="fn">MeanShift</span>(bandwidth=bandwidth)</div>
+  </div>
+</section>
+
+<!-- 15 퀴즈 2 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>평균 이동 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="1">
+      <span class="q-tag">QUIZ 02</span>
+      <div class="q">K-평균과 비교했을 때, <b>평균 이동(Mean Shift)</b>의 특징은?</div>
+      <div class="opts">
+        <div class="opt">① 군집 개수 K를 반드시 사람이 정해야 한다</div>
+        <div class="opt">② 군집 개수를 미리 정하지 않아도 자동으로 찾는다</div>
+        <div class="opt">③ 정답 라벨이 꼭 필요하다</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ②</b> — 평균 이동은 밀도 봉우리를 찾아 군집 수를 자동 결정합니다. 대신 bandwidth(반경)를 잘 정하는 게 중요해요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 04</div>
+  <h2>GMM — 가우시안 혼합 모델</h2>
+  <p class="sec-desc">"딱 잘라" 묶는 K-평균과 달리, 확률로 부드럽게 묶습니다.</p>
+</section>
+
+<!-- 17 GMM 개념 + 비교 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>GMM 개요</div>
+  <h2 class="slide-title">GMM = 여러 정규분포의 혼합</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col old">
+        <h4>K-평균</h4>
+        <p><b>거리</b> 기반으로 딱 잘라 할당</p>
+        <p>군집이 <b>동그랗다</b>고 가정</p>
+        <p>길쭉한 군집엔 약함</p>
+      </div>
+      <div class="col new">
+        <h4>GMM</h4>
+        <p><b>확률 분포</b> 기반으로 부드럽게</p>
+        <p>군집이 <b>길쭉/타원형</b>이어도 OK</p>
+        <p>"이 점은 군집A일 확률 80%"</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 키 분포로 성별 추정</div>
+      <p>남녀 키는 각각 <b>종 모양 분포</b>를 이룹니다. 170cm인 사람은 "남자일 확률 70%, 여자일 확률 30%"처럼 추정 가능하죠. GMM은 데이터가 <b>여러 정규분포의 섞임</b>이라 보고 각 군집 소속 확률을 계산합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 18 GMM vs K-평균 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>GMM vs K-평균</div>
+  <h2 class="slide-title">길쭉한 데이터에서 진가 발휘</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code sm"><span class="kw">from</span> sklearn.mixture <span class="kw">import</span> GaussianMixture
+
+gmm = <span class="fn">GaussianMixture</span>(n_components=<span class="nm">3</span>, random_state=<span class="nm">0</span>)
+labels = gmm.<span class="fn">fit_predict</span>(iris.data)</div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 언제 GMM이 유리한가</div>
+        <p>데이터가 <b>동그랗지 않고 길게 늘어진</b> 모양일 때, K-평균은 어색하게 자르지만 GMM은 그 형태를 따라 자연스럽게 묶습니다. 단, K-평균보다 계산이 무거워요.</p>
+      </div>
+    </div>
+    <p class="note">📌 <b>n_components</b> = 섞인 분포의 개수(=군집 수). K-평균의 n_clusters와 비슷한 역할이에요.</p>
+  </div>
+</section>
+
+<!-- SECTION 5 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 05</div>
+  <h2>DBSCAN — 밀도 기반 군집화</h2>
+  <p class="sec-desc">동그란 모양도, K도 필요 없어요. 데이터의 '밀도'만 보고 복잡한 모양도 척척.</p>
+</section>
+
+<!-- 20 DBSCAN -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>DBSCAN</div>
+  <h2 class="slide-title">밀도로 묶고, 외톨이는 노이즈로</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li><b>빽빽하게 모인 점들</b>을 하나의 군집으로</li>
+          <li>K를 정할 필요 없음 (자동)</li>
+          <li><b>초승달·소용돌이</b> 같은 복잡한 모양도 OK</li>
+          <li>어디에도 안 속한 점은 <b>노이즈(-1)</b>로 분리</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 별자리 잇기</div>
+        <p>밤하늘에서 <b>가까이 모인 별들</b>을 이어 별자리를 만들고, <b>외딴 별</b>은 그냥 두는 것. DBSCAN은 촘촘한 영역을 군집으로, 동떨어진 점은 <b>이상치(노이즈)</b>로 자동 처리합니다.</p>
+      </div>
+    </div>
+    <div class="code sm" style="margin-top:1rem"><span class="kw">from</span> sklearn.cluster <span class="kw">import</span> DBSCAN
+dbscan = <span class="fn">DBSCAN</span>(eps=<span class="nm">0.6</span>, min_samples=<span class="nm">8</span>)   <span class="cm"># eps=반경, min_samples=최소 이웃 수</span></div>
+  </div>
+</section>
+
+<!-- 21 4가지 비교표 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>군집화 알고리즘 비교</div>
+  <h2 class="slide-title">한눈에 정리하기</h2>
+  <div class="body-content">
+    <table class="simple">
+      <tr><th class="l">알고리즘</th><th>K 지정?</th><th class="l">핵심 아이디어</th><th class="l">강점</th></tr>
+      <tr><td class="l hi">K-평균</td><td>필요</td><td class="l">중심점 거리</td><td class="l">빠름·간단, 동그란 군집</td></tr>
+      <tr><td class="l hi">평균 이동</td><td>자동</td><td class="l">밀도 봉우리</td><td class="l">K 자동, 이미지 처리</td></tr>
+      <tr><td class="l hi">GMM</td><td>필요</td><td class="l">확률 분포 혼합</td><td class="l">길쭉/타원형 군집</td></tr>
+      <tr><td class="l hi">DBSCAN</td><td>자동</td><td class="l">밀도 연결</td><td class="l">복잡한 모양, 노이즈 분리</td></tr>
+    </table>
+    <p class="note" style="margin-top:1.1rem">🔑 <b>일단 K-평균</b>으로 시작. 모양이 복잡하거나 노이즈가 많으면 DBSCAN, 길쭉하면 GMM, K를 모르면 평균이동/DBSCAN.</p>
+  </div>
+</section>
+
+<!-- 22 퀴즈 3 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>DBSCAN 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="2">
+      <span class="q-tag">QUIZ 03</span>
+      <div class="q"><b>초승달 모양</b>처럼 복잡하게 휘어진 데이터를 군집화할 때 가장 적합한 알고리즘은?</div>
+      <div class="opts">
+        <div class="opt">① K-평균 (동그란 군집 가정)</div>
+        <div class="opt">② 그냥 분류 모델을 쓴다</div>
+        <div class="opt">③ DBSCAN (밀도 기반, 복잡한 모양 OK)</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ③  DBSCAN</b> — K-평균은 동그란 군집을 가정해 초승달 모양을 못 나눕니다. DBSCAN은 밀도로 연결해 휘어진 모양도 잘 묶어요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 06</div>
+  <h2>실습 — 고객 세그먼테이션</h2>
+  <p class="sec-desc">온라인 쇼핑몰 거래 데이터로 '비슷한 고객 그룹'을 찾아 마케팅에 활용합니다.</p>
+</section>
+
+<!-- 24 RFM 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>고객 세그먼테이션 & RFM</div>
+  <h2 class="slide-title">고객을 'RFM'으로 이해하기</h2>
+  <div class="body-content">
+    <div class="grid grid-3">
+      <div class="card accent"><h3>R · Recency</h3><p><b>최근성</b> — 얼마나 <b>최근에</b> 구매했나</p></div>
+      <div class="card accent"><h3>F · Frequency</h3><p><b>빈도</b> — 얼마나 <b>자주</b> 구매했나</p></div>
+      <div class="card accent"><h3>M · Monetary</h3><p><b>금액</b> — 얼마나 <b>많이</b> 썼나</p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 비유 · 단골 손님 알아보기</div>
+      <p>가게 주인은 손님을 <b>"자주 와서 많이 사는 VIP", "옛날에 한 번 온 뜨내기"</b>처럼 나눠 기억하죠. RFM은 이 직관을 <b>3개의 숫자</b>로 만든 것. 이 숫자로 고객을 군집화하면 마케팅 전략이 보입니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 25 RFM 가공 + 군집화 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>데이터 가공 & 군집화</div>
+  <h2 class="slide-title">거래 기록 → 고객별 RFM → 군집</h2>
+  <div class="body-content">
+    <div class="code sm"><span class="cm"># 거래 데이터를 고객별로 집계해 RFM 만들기</span>
+agg = {<span class="st">'InvoiceDate'</span>:<span class="st">'max'</span>,    <span class="cm"># Recency (최근 구매일)</span>
+       <span class="st">'InvoiceNo'</span>:<span class="st">'count'</span>,    <span class="cm"># Frequency (구매 횟수)</span>
+       <span class="st">'sale_amount'</span>:<span class="st">'sum'</span>}   <span class="cm"># Monetary (총 구매액)</span>
+cust_df = retail_df.<span class="fn">groupby</span>(<span class="st">'CustomerID'</span>).<span class="fn">agg</span>(agg)
+<span class="cm"># → KMeans로 고객 군집화 → 그룹별 마케팅</span></div>
+    <div class="warn" style="margin-top:1.2rem">
+      <div class="tag">⚠️ 실무 포인트 — 왜곡된 분포</div>
+      <p>RFM은 <b>소수 VIP가 매우 큰 값</b>을 가져 분포가 크게 치우칩니다. 그래서 <b>로그 변환</b>(5장 복습!) 후 군집화하면 결과가 훨씬 좋아져요. 데이터 정제가 여기서도 핵심!</p>
+    </div>
+  </div>
+</section>
+
+<!-- 정리 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>7장 핵심 정리</div>
+  <h2 class="slide-title">오늘의 한 페이지 요약</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card accent"><h3><span class="ico">🎯</span>K-평균</h3><p>중심점 거리로 묶기. K를 정해야 하고 동그란 군집 가정. 가장 기본.</p></div>
+      <div class="card accent"><h3><span class="ico">📏</span>군집 평가</h3><p>정답이 없어 <b>실루엣 계수</b>(응집+분리)로 평가. 최적 K도 결정.</p></div>
+      <div class="card accent"><h3><span class="ico">🔀</span>다양한 기법</h3><p>평균이동(밀도 봉우리·K자동), GMM(확률·길쭉), DBSCAN(밀도·복잡한 모양·노이즈).</p></div>
+      <div class="card accent"><h3><span class="ico">🛍️</span>실전</h3><p><b>RFM</b>으로 고객 세그먼테이션. 로그 변환 후 군집화.</p></div>
+    </div>
+    <p class="note" style="margin-top:1.2rem">✅ 정답 없이도 데이터의 <b>숨은 구조</b>를 찾는 법을 배웠습니다. 군집화는 고객 분석·이상 탐지·추천 등 실무에서 정말 많이 쓰여요!</p>
+  </div>
+</section>
+
+<!-- 마무리 -->
+<section class="slide cover">
+  <div class="chapter-tag">NEXT · CHAPTER 08</div>
+  <h1>이제 '글'을<br>다뤄봅니다 📝</h1>
+  <p class="sub">숫자·표 데이터를 넘어, 다음 장 <b style="color:#fff">텍스트 분석</b>으로 갑니다. 리뷰·뉴스·SNS 같은 <b style="color:#fff">자연어</b>를 숫자로 바꿔 감성 분석·토픽 모델링·문서 분류까지 해봅니다.</p>
+  <p class="sub" style="margin-top:1.3rem;font-size:1.22rem;color:#9fb3c8">💪 숙제: 붓꽃 데이터를 K-평균(K=3)으로 군집화하고, 실제 품종(target)과 얼마나 일치하는지 비교해 보기.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 7장 끝 · 수고했습니다!</div>
+</section>
+
+</div>
+
+<div id="sectionlabel">7장 · 군집화 (Clustering)</div>
+<div class="hint">← → 또는 스페이스로 이동 · F 전체화면</div>
+<div id="hud">
+  <button onclick="go(-1)" aria-label="이전">‹</button>
+  <span class="counter"><span id="cur">1</span> / <span id="total">1</span></span>
+  <button onclick="go(1)" aria-label="다음">›</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+  function render(){
+    slides.forEach((s,i)=>s.classList.toggle('active', i===idx));
+    document.getElementById('cur').textContent = idx+1;
+    document.getElementById('progress').style.width = ((idx+1)/slides.length*100)+'%';
+  }
+  function go(d){const n=idx+d;if(n>=0&&n<slides.length){idx=n;render();}}
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(-1);}
+    else if(e.key==='Home'){idx=0;render();}
+    else if(e.key==='End'){idx=slides.length-1;render();}
+    else if(e.key.toLowerCase()==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+  });
+  document.getElementById('deck').addEventListener('click', e=>{
+    if(e.target.closest('.opt,.reveal-btn,button,a'))return;
+    const x=e.clientX/window.innerWidth;go(x<0.25?-1:1);
+  });
+  function revealQuiz(btn){
+    const quiz=btn.closest('.quiz');
+    const ansIdx=parseInt(quiz.dataset.answer,10);
+    const opts=quiz.querySelectorAll('.opt');
+    if(opts[ansIdx])opts[ansIdx].classList.add('reveal-correct');
+    quiz.querySelector('.answer').classList.add('show');
+    btn.style.display='none';
+  }
+  render();
+</script>
+</body>
+</html>

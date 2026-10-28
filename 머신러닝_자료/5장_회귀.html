@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5장 · 회귀 (Regression)</title>
+<style>
+  :root{
+    --blurple:#635bff;--blurple-2:#7a73ff;--cyan:#00d4ff;--pink:#ff7eb3;
+    --navy:#0a2540;--slate:#425466;--slate-2:#697386;--bg:#f6f9fc;--card:#ffffff;--line:#e6ebf1;
+    --code-bg:#0a1530;
+    --grad:linear-gradient(118deg,#635bff 0%,#7a73ff 38%,#00d4ff 100%);
+    --grad-warm:linear-gradient(118deg,#635bff 0%,#a855f7 50%,#ff7eb3 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#0a2540;color:var(--navy);overflow:hidden;-webkit-font-smoothing:antialiased;}
+  #deck{position:fixed;inset:0;}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;padding:5.2vh 6.5vw 6vh;background:var(--bg);overflow:hidden;}
+  .slide.active{display:flex;animation:fade .45s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  .slide::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--grad);}
+  .slide.dark::before{display:none;}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:700;color:var(--blurple);margin-bottom:1.1rem;}
+  .kicker .dot{width:9px;height:9px;border-radius:50%;background:var(--grad);}
+  h2.slide-title{font-size:2.15rem;line-height:1.18;font-weight:800;letter-spacing:-.02em;color:var(--navy);margin-bottom:1.4rem;}
+  .lead{font-size:1.42rem;line-height:1.6;color:var(--slate);max-width:62ch;}
+  .body-content{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;}
+  p{font-size:1.22rem;line-height:1.62;color:var(--slate);}
+  .grad-text{background:var(--grad-warm);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .slide.cover,.slide.section{background:#0a2540;color:#fff;justify-content:center;}
+  .slide.cover::after,.slide.section::after{content:"";position:absolute;inset:0;z-index:0;
+    background:radial-gradient(60% 80% at 78% 18%,rgba(0,212,255,.32),transparent 60%),
+      radial-gradient(70% 90% at 12% 88%,rgba(168,85,247,.40),transparent 60%),
+      radial-gradient(50% 60% at 50% 50%,rgba(99,91,255,.30),transparent 70%);}
+  .slide.cover>*,.slide.section>*{position:relative;z-index:1;}
+  .slide.cover h1{font-size:3.4rem;font-weight:800;line-height:1.1;letter-spacing:-.03em;color:#fff;margin-bottom:1.4rem;}
+  .slide.cover .sub{font-size:1.48rem;color:#c5d2e0;font-weight:500;max-width:64ch;line-height:1.55;}
+  .slide.cover .chapter-tag{display:inline-block;font-size:1.1rem;font-weight:700;color:#fff;background:var(--grad);padding:.5rem 1.2rem;border-radius:999px;margin-bottom:1.8rem;}
+  .slide.cover .footer-note{position:absolute;bottom:6vh;left:6.5vw;color:#8aa0b8;font-size:1rem;z-index:1;}
+  .slide.section .sec-num{font-size:1.3rem;font-weight:700;color:var(--cyan);margin-bottom:1rem;letter-spacing:.05em;}
+  .slide.section h2{font-size:2.9rem;font-weight:800;color:#fff;line-height:1.12;letter-spacing:-.02em;}
+  .slide.section .sec-desc{font-size:1.35rem;color:#c5d2e0;margin-top:1.3rem;max-width:60ch;line-height:1.55;}
+  .grid{display:grid;gap:1.2rem;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:1.3rem 1.45rem;box-shadow:0 2px 10px rgba(10,37,64,.05);}
+  .card h3{font-size:1.3rem;font-weight:750;color:var(--navy);margin-bottom:.5rem;display:flex;align-items:center;gap:.6rem;}
+  .card p{font-size:1.08rem;line-height:1.48;color:var(--slate);}
+  .card .ico{font-size:1.45rem;}
+  .card.accent{border-top:4px solid transparent;border-image:var(--grad) 1;}
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:.85rem;}
+  ul.clean li{font-size:1.24rem;line-height:1.5;color:var(--slate);padding-left:2rem;position:relative;}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.5em;width:11px;height:11px;border-radius:3px;background:var(--grad);}
+  ul.clean li b{color:var(--navy);font-weight:750;}
+  .code{background:var(--code-bg);border-radius:14px;padding:1.05rem 1.3rem;font-family:"SF Mono","JetBrains Mono",Consolas,monospace;font-size:1.0rem;line-height:1.6;color:#e2e8f0;overflow:auto;box-shadow:0 8px 30px rgba(10,21,48,.35);}
+  .code.sm{font-size:.92rem;}
+  .code .cm{color:#7c89a8;font-style:italic;}
+  .code .kw{color:#ff7eb3;}.code .fn{color:#00d4ff;}.code .st{color:#9be6a8;}.code .nm{color:#ffd479;}.code .out{color:#7c89a8;}
+  .code-label{font-size:.95rem;font-weight:700;color:var(--slate-2);margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;}
+  .code-label::before{content:"▸";color:var(--blurple);}
+  .analogy{background:linear-gradient(135deg,#f0f1ff,#fdf2f8);border:1px solid #e3e0ff;border-left:5px solid var(--blurple);border-radius:14px;padding:1.05rem 1.35rem;}
+  .analogy .tag{font-size:.95rem;font-weight:800;color:var(--blurple);margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem;}
+  .analogy p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .analogy p b{color:var(--blurple);}
+  .warn{background:linear-gradient(135deg,#fffbeb,#fff7ed);border:1px solid #fde68a;border-left:5px solid #f59e0b;border-radius:14px;padding:1.05rem 1.35rem;}
+  .warn .tag{font-size:.95rem;font-weight:800;color:#b45309;margin-bottom:.35rem;}
+  .warn p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .warn p b{color:#b45309;}
+  .quiz{background:#fff;border:2px dashed var(--blurple-2);border-radius:18px;padding:1.4rem 1.6rem;}
+  .quiz .q-tag{display:inline-flex;align-items:center;gap:.5rem;background:var(--grad);color:#fff;font-weight:700;font-size:1rem;padding:.35rem 1rem;border-radius:999px;margin-bottom:.9rem;}
+  .quiz .q{font-size:1.35rem;font-weight:700;color:var(--navy);line-height:1.45;margin-bottom:1rem;}
+  .quiz .opts{display:flex;flex-direction:column;gap:.55rem;}
+  .quiz .opt{font-size:1.15rem;color:var(--slate);padding:.6rem 1.1rem;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;transition:.18s;}
+  .quiz .opt:hover{border-color:var(--blurple-2);background:#f7f7ff;}
+  .quiz .opt.reveal-correct{border-color:#22c55e;background:#f0fdf4;color:#15803d;font-weight:700;}
+  .quiz .answer{margin-top:.9rem;font-size:1.1rem;color:var(--slate);display:none;}
+  .quiz .answer.show{display:block;animation:fade .3s;}
+  .quiz .answer b{color:#15803d;}
+  .reveal-btn{margin-top:.8rem;background:var(--blurple);color:#fff;border:none;font-size:1.02rem;font-weight:700;padding:.5rem 1.25rem;border-radius:10px;cursor:pointer;font-family:inherit;}
+  .reveal-btn:hover{background:#5249e0;}
+  .practice{background:linear-gradient(135deg,#0a2540,#1a1f4d);color:#fff;border-radius:16px;padding:1.2rem 1.5rem;}
+  .practice .p-tag{display:inline-flex;align-items:center;gap:.5rem;color:var(--cyan);font-weight:800;font-size:1.02rem;margin-bottom:.5rem;}
+  .practice p{color:#d4dff0;font-size:1.12rem;line-height:1.5;}
+  .practice code{background:rgba(0,212,255,.14);color:#7fe9ff;padding:.15em .5em;border-radius:6px;font-family:"SF Mono",monospace;font-size:.95em;}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .compare.three{grid-template-columns:1fr 1fr 1fr;}
+  .compare .col{padding:1.2rem 1.4rem;}
+  .compare .col.old{background:#fff;}
+  .compare .col.new{background:linear-gradient(135deg,#f0f1ff,#faf5ff);}
+  .compare .col h4{font-size:1.18rem;font-weight:800;margin-bottom:.7rem;}
+  .compare .col.old h4{color:var(--slate-2);}
+  .compare .col.new h4{color:var(--blurple);}
+  .compare .col p{font-size:1.05rem;line-height:1.42;margin-bottom:.5rem;}
+  .note{font-size:1.02rem;color:var(--slate-2);margin-top:.75rem;line-height:1.48;}
+  .note b{color:var(--navy);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem;align-items:center;}
+  .stack{display:flex;flex-direction:column;gap:.9rem;}
+  .flow{display:flex;align-items:stretch;gap:.5rem;margin:.4rem 0;flex-wrap:wrap;}
+  .flow .step{flex:1;min-width:120px;background:var(--grad);color:#fff;border-radius:14px;padding:.85rem .7rem;text-align:center;box-shadow:0 6px 18px rgba(99,91,255,.22);}
+  .flow .step .n{font-size:1.1rem;font-weight:800;}
+  .flow .step .s{font-size:.85rem;opacity:.9;margin-top:.15rem;}
+  .flow .arr{display:flex;align-items:center;font-size:1.4rem;color:var(--blurple);font-weight:800;}
+  table.simple{border-collapse:collapse;width:100%;font-size:1.08rem;}
+  table.simple th,table.simple td{border:1px solid var(--line);padding:.55rem .7rem;text-align:center;}
+  table.simple th{background:#f0f1ff;color:var(--navy);font-weight:800;}
+  table.simple td{color:var(--slate);}
+  table.simple tr:nth-child(even) td{background:#fafbfd;}
+  table.simple .hi{color:var(--blurple);font-weight:800;}
+  table.simple td.l,table.simple th.l{text-align:left;}
+  .fitviz{display:flex;gap:1rem;justify-content:center;}
+  .fitviz .panel{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:1rem;text-align:center;box-shadow:0 2px 10px rgba(10,37,64,.05);}
+  .fitviz .panel svg{width:100%;height:120px;}
+  .fitviz .panel .t{font-weight:800;margin-top:.5rem;font-size:1.05rem;}
+  .fitviz .panel .d{font-size:.92rem;color:var(--slate-2);margin-top:.2rem;}
+  .fitviz .under{color:#f59e0b;}.fitviz .good{color:#16a34a;}.fitviz .over{color:#ef4444;}
+  #progress{position:fixed;top:0;left:0;height:4px;background:var(--grad);z-index:100;transition:width .35s ease;}
+  #hud{position:fixed;bottom:1.4vh;right:2vw;z-index:100;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem .9rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  #hud .counter{font-size:.95rem;font-weight:700;color:var(--slate);font-variant-numeric:tabular-nums;}
+  #hud button{border:none;background:transparent;cursor:pointer;font-size:1.3rem;color:var(--blurple);width:30px;height:30px;border-radius:50%;line-height:1;display:flex;align-items:center;justify-content:center;}
+  #hud button:hover{background:#eef0ff;}
+  #sectionlabel{position:fixed;bottom:1.4vh;left:2vw;z-index:100;font-size:.95rem;font-weight:700;color:var(--slate-2);background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem 1rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  .hint{position:fixed;bottom:1.4vh;left:50%;transform:translateX(-50%);z-index:100;font-size:.85rem;color:#8aa0b8;}
+  @media (max-width:1100px){h2.slide-title{font-size:1.85rem;}.slide.cover h1{font-size:2.5rem;}.slide.section h2{font-size:2.2rem;}.lead{font-size:1.18rem;}.grid-3,.grid-4{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="deck">
+
+<!-- 1 COVER -->
+<section class="slide cover active">
+  <div class="chapter-tag">CHAPTER 05</div>
+  <h1>회귀<br><span style="font-size:2.1rem;font-weight:700;color:#c5d2e0">Regression</span></h1>
+  <p class="sub">이번엔 '범주'가 아니라 <b style="color:#fff">숫자</b>를 예측합니다. 집값, 자전거 대여량처럼요. 직선 긋기부터 경사 하강법, 규제(릿지·라쏘), 회귀 트리까지 — 예측의 또 다른 절반을 채웁니다.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 강의자료</div>
+</section>
+
+<!-- 2 복습+목표 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>4장 복습 & 5장 목표</div>
+  <h2 class="slide-title">범주를 맞히던 것에서, 숫자를 맞히기로</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <div class="card"><h3>✅ 4장까지 (분류)</h3><p>"이 메일은 <b>스팸이냐 아니냐</b>", "생존이냐 아니냐" — <b>정해진 범주</b> 중 하나를 골랐습니다.</p></div>
+        <div class="card accent"><h3>🎯 5장 (회귀)</h3><p>"이 집은 <b>얼마일까?</b>", "내일 대여량은 <b>몇 대?</b>" — <b>연속된 숫자</b>를 예측합니다.</p></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 시험 vs 키 재기</div>
+        <p>분류가 <b>합격/불합격</b>을 가르는 것이라면, 회귀는 <b>키를 cm 단위로 재는</b> 것입니다. 답이 '칸'이 아니라 '눈금 위 한 점'이에요. 좋은 소식: <b>4장의 트리 모델들이 회귀에도 그대로 쓰입니다!</b></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 목차 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>5장의 큰 흐름</div>
+  <h2 class="slide-title">오늘의 지도</h2>
+  <div class="body-content">
+    <ul class="clean">
+      <li><b>회귀의 기초</b> — 선형 회귀(직선 긋기)와 경사 하강법</li>
+      <li><b>LinearRegression</b> — 캘리포니아 집값 예측, 회귀 평가지표(RMSE·R²)</li>
+      <li><b>다항 회귀와 과적합</b> — 편향-분산 트레이드오프</li>
+      <li><b>규제 선형 모델</b> — 릿지·라쏘·엘라스틱넷</li>
+      <li><b>로지스틱 회귀 & 회귀 트리</b> — 이름의 함정, 트리로 숫자 예측</li>
+      <li><b>실습</b> — 자전거 대여 수요, 캐글 주택 가격 예측</li>
+    </ul>
+  </div>
+</section>
+
+<!-- SECTION 1 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 01-03</div>
+  <h2>회귀의 기초 — 직선과 경사 하강법</h2>
+  <p class="sec-desc">데이터를 가장 잘 설명하는 '직선'을 어떻게 찾을까? 회귀의 심장을 들여다봅니다.</p>
+</section>
+
+<!-- 5 회귀란 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>회귀 소개</div>
+  <h2 class="slide-title">회귀 = 점들 사이로 최적의 선 긋기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <p class="lead" style="font-size:1.3rem">공부 시간(X)과 점수(y)의 점들을 가장 잘 관통하는 <b>직선</b>을 찾으면, 새 학생의 공부 시간으로 점수를 예측할 수 있어요.</p>
+        <div class="code sm">y = w₁·X + w₀
+<span class="cm"># w₁ = 기울기, w₀ = 절편 (이 둘을 학습)</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 산점도 위의 자</div>
+        <p>흩어진 점들 위에 <b>투명한 자</b>를 올려놓고, 모든 점에서 가장 가까운 위치로 <b>기울기·높이를 조절</b>하는 것. 그 '가장 잘 맞는 자'가 바로 회귀 직선입니다.</p>
+      </div>
+    </div>
+    <p class="note">📌 "가장 잘 맞는다" = 실제값과 예측값의 <b>오차(거리)가 가장 작다.</b> 이걸 어떻게 찾을까요? → 경사 하강법!</p>
+  </div>
+</section>
+
+<!-- 6 비용함수 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>비용 최소화</div>
+  <h2 class="slide-title">'잘 맞는 정도'를 숫자로 — 비용 함수</h2>
+  <div class="body-content">
+    <div style="max-width:720px;background:#fff;border:1px solid #e6ebf1;border-radius:14px;padding:1.1rem 1.3rem;margin-bottom:1.2rem;box-shadow:0 2px 10px rgba(10,37,64,.05)">
+      <div style="font-family:'SF Mono',monospace;font-size:1.15rem;color:#635bff;font-weight:700">비용(MSE) = 평균( (실제값 − 예측값)² )</div>
+    </div>
+    <div class="analogy">
+      <div class="tag">💡 비유 · 과녁과의 거리</div>
+      <p>예측이 실제와 얼마나 빗나갔는지를 <b>거리의 제곱으로 합산</b>한 게 비용입니다. 비용이 <b>작을수록 좋은 직선</b>. 회귀 학습이란 결국 <b>이 비용을 가장 작게 만드는 기울기·절편을 찾는 것</b>이에요.</p>
+    </div>
+    <p class="note">📌 제곱하는 이유: 음수·양수 오차가 상쇄되지 않게, 그리고 큰 오차에 더 큰 벌점을 주려고.</p>
+  </div>
+</section>
+
+<!-- 7 경사하강법 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>경사 하강법 (Gradient Descent)</div>
+  <h2 class="slide-title">비용을 줄이는 법 — 한 걸음씩 내려가기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="analogy">
+        <div class="tag">💡 비유 · 안갯속 하산</div>
+        <p>짙은 안개 속 산에서 <b>가장 낮은 곳(최소 비용)</b>으로 내려가려면? 발밑에서 <b>가장 가파르게 내려가는 방향</b>으로 한 걸음씩 이동하면 됩니다. 경사 하강법이 바로 이거예요.</p>
+      </div>
+      <div class="stack">
+        <ul class="clean">
+          <li>비용이 줄어드는 방향으로 <b>기울기·절편을 조금씩 수정</b></li>
+          <li><b>학습률(learning_rate)</b> = 한 걸음의 크기</li>
+          <li>이를 수천 번 반복 → 최적값 도달</li>
+        </ul>
+      </div>
+    </div>
+    <div class="warn" style="margin-top:1.1rem">
+      <div class="tag">⚠️ 학습률 주의</div>
+      <p>걸음이 <b>너무 크면</b>(높은 학습률) 최저점을 지나쳐 발산하고, <b>너무 작으면</b> 한없이 느립니다. 적절한 보폭이 중요해요. 딥러닝의 핵심 원리이기도 합니다!</p>
+    </div>
+  </div>
+</section>
+
+<!-- 8 퀴즈 1 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>회귀 기초 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="1">
+      <span class="q-tag">QUIZ 01</span>
+      <div class="q">경사 하강법에서 <b>학습률(learning rate)을 너무 크게</b> 설정하면?</div>
+      <div class="opts">
+        <div class="opt">① 항상 더 빨리 정답에 도달한다</div>
+        <div class="opt">② 최저점을 지나쳐 버려 비용이 발산할 수 있다</div>
+        <div class="opt">③ 아무 변화도 없다</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ②</b> — 보폭이 너무 크면 최저점을 건너뛰며 진동하거나 발산합니다. 너무 작으면 느리죠. 적절한 학습률 선택이 중요합니다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 04</div>
+  <h2>사이킷런 LinearRegression</h2>
+  <p class="sec-desc">캘리포니아 집값 데이터로 첫 회귀 모델을. 그리고 회귀는 '어떻게 평가'하는지 배웁니다.</p>
+</section>
+
+<!-- 9 회귀 평가지표 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>회귀 평가지표</div>
+  <h2 class="slide-title">회귀는 '얼마나 빗나갔나'로 평가한다</h2>
+  <div class="body-content">
+    <div class="grid grid-4">
+      <div class="card"><h3>MSE</h3><p>오차 제곱의 평균</p></div>
+      <div class="card accent"><h3>RMSE</h3><p>MSE의 제곱근. <b>단위가 원래대로</b> 돌아와 해석 쉬움 ⭐</p></div>
+      <div class="card"><h3>MAE</h3><p>오차 절댓값의 평균</p></div>
+      <div class="card accent"><h3>R² (결정계수)</h3><p><b>1에 가까울수록</b> 잘 설명. 0~1</p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 분류와의 차이</div>
+      <p>분류는 "맞았나/틀렸나"(정확도)였지만, 회귀는 <b>"얼마나 가깝게 맞혔나"(오차)</b>로 평가합니다. 집값을 1000만원 차이로 맞혔는지, 1억 차이인지가 중요하니까요. <b>RMSE</b>가 가장 많이 쓰여요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10 캘리포니아 코드 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>캘리포니아 주택 가격 예측</div>
+  <h2 class="slide-title">코드로 보기 — 익숙한 fit/predict</h2>
+  <div class="body-content">
+    <div class="code"><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> fetch_california_housing
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LinearRegression
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> mean_squared_error, r2_score
+
+lr = <span class="fn">LinearRegression</span>()
+lr.<span class="fn">fit</span>(X_train, y_train)            <span class="cm"># 분류와 똑같은 fit/predict!</span>
+y_pred = lr.<span class="fn">predict</span>(X_test)
+rmse = np.<span class="fn">sqrt</span>(<span class="fn">mean_squared_error</span>(y_test, y_pred))   <span class="cm"># RMSE</span>
+<span class="fn">print</span>(<span class="fn">r2_score</span>(y_test, y_pred))                  <span class="cm"># R² → 0.595</span></div>
+    <div class="warn" style="margin-top:1.2rem">
+      <div class="tag">⚠️ 교재의 보스턴 데이터는 이제 못 씁니다</div>
+      <p>책은 <b>보스턴 집값(load_boston)</b>을 쓰지만, 이 데이터는 윤리적 문제로 <b>사이킷런 1.2에서 완전히 제거</b>됐습니다. 실습 코드는 <b>캘리포니아 집값(fetch_california_housing)</b>으로 대체했어요. 피처 8개(소득·주택연식·방수·위경도 등), 20,640건입니다.</p>
+    </div>
+    <div class="analogy" style="margin-top:1.1rem">
+      <div class="tag">💡 회귀 계수 해석 (보너스)</div>
+      <p>선형 회귀는 <b>각 피처의 회귀 계수(coef_)</b>를 줍니다. 캘리포니아 데이터에선 "<b>소득 중앙값(MedInc)이 높을수록 집값↑</b>(+0.43), <b>북쪽·동쪽으로 갈수록 집값↓</b>(위도 −0.43, 경도 −0.44)"처럼 <b>영향 방향과 크기를 해석</b>할 수 있어요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 11 교차검증 회귀 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>회귀의 교차 검증</div>
+  <h2 class="slide-title">cross_val_score, 부호에 주의!</h2>
+  <div class="body-content">
+    <div class="code"><span class="cm"># 회귀의 교차 검증 — scoring에 neg_mean_squared_error</span>
+neg_mse = <span class="fn">cross_val_score</span>(lr, X, y, scoring=<span class="st">"neg_mean_squared_error"</span>, cv=<span class="nm">5</span>)
+rmse = np.<span class="fn">sqrt</span>(-<span class="nm">1</span> * neg_mse)     <span class="cm"># 음수라서 -1 곱해 양수로!</span></div>
+    <div class="warn" style="margin-top:1.3rem">
+      <div class="tag">⚠️ 왜 'neg'(음수)일까?</div>
+      <p>사이킷런은 <b>"점수는 클수록 좋다"</b>는 규칙을 따릅니다. 그런데 오차(MSE)는 작을수록 좋죠. 그래서 부호를 뒤집어 <b>음수(neg)로 반환</b>합니다. 우리가 다시 <b>-1을 곱해</b> 원래 값으로 되돌려요. 처음엔 헷갈리는 단골 함정!</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 05</div>
+  <h2>다항 회귀와 과적합</h2>
+  <p class="sec-desc">직선으로 안 되면 곡선으로. 하지만 너무 구불구불하면? 머신러닝 최대의 적, 과적합을 만납니다.</p>
+</section>
+
+<!-- 12 다항 회귀 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>다항 회귀</div>
+  <h2 class="slide-title">직선 대신 곡선 — 다항 회귀</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <p style="font-size:1.2rem">데이터가 곡선 모양이면 직선으론 부족하죠. <b>피처를 제곱·세제곱</b>한 항을 추가하면 곡선도 표현할 수 있어요.</p>
+        <div class="code sm"><span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> PolynomialFeatures
+poly = <span class="fn">PolynomialFeatures</span>(degree=<span class="nm">2</span>)   <span class="cm"># 2차항 추가</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 자에서 줄자로</div>
+        <p>직선 자로는 곡선을 못 그리지만, <b>휘어지는 줄자</b>라면 가능하죠. degree(차수)가 높을수록 더 구불구불한 곡선을 그릴 수 있습니다. 단, 다음 슬라이드의 함정 주의!</p>
+      </div>
+    </div>
+    <p class="note">📌 보통 <b>Pipeline</b>으로 [다항 변환 → 선형 회귀]를 한 번에 묶어 처리합니다.</p>
+  </div>
+</section>
+
+<!-- 13 과소/과적합 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>과소적합 vs 과적합</div>
+  <h2 class="slide-title">차수가 높다고 좋은 게 아니다</h2>
+  <div class="body-content">
+    <div class="fitviz">
+      <div class="panel">
+        <svg viewBox="0 0 100 60"><polyline points="5,50 95,15" fill="none" stroke="#f59e0b" stroke-width="2.5"/><circle cx="20" cy="42" r="2.5" fill="#0a2540"/><circle cx="40" cy="38" r="2.5" fill="#0a2540"/><circle cx="55" cy="25" r="2.5" fill="#0a2540"/><circle cx="75" cy="28" r="2.5" fill="#0a2540"/><circle cx="88" cy="12" r="2.5" fill="#0a2540"/></svg>
+        <div class="t under">Degree 1 · 과소적합</div><div class="d">너무 단순 — 패턴을 못 잡음</div>
+      </div>
+      <div class="panel">
+        <svg viewBox="0 0 100 60"><path d="M5,48 Q35,45 55,25 T95,12" fill="none" stroke="#16a34a" stroke-width="2.5"/><circle cx="20" cy="42" r="2.5" fill="#0a2540"/><circle cx="40" cy="38" r="2.5" fill="#0a2540"/><circle cx="55" cy="25" r="2.5" fill="#0a2540"/><circle cx="75" cy="28" r="2.5" fill="#0a2540"/><circle cx="88" cy="12" r="2.5" fill="#0a2540"/></svg>
+        <div class="t good">Degree 4 · 적절 ✓</div><div class="d">패턴은 잡고 노이즈는 무시</div>
+      </div>
+      <div class="panel">
+        <svg viewBox="0 0 100 60"><path d="M5,48 Q15,20 25,42 T45,38 Q50,10 60,25 T80,28 Q85,5 95,12" fill="none" stroke="#ef4444" stroke-width="2.5"/><circle cx="20" cy="42" r="2.5" fill="#0a2540"/><circle cx="40" cy="38" r="2.5" fill="#0a2540"/><circle cx="55" cy="25" r="2.5" fill="#0a2540"/><circle cx="75" cy="28" r="2.5" fill="#0a2540"/><circle cx="88" cy="12" r="2.5" fill="#0a2540"/></svg>
+        <div class="t over">Degree 15 · 과적합</div><div class="d">노이즈까지 외움 — 새 데이터 취약</div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:1.2rem">🔑 너무 단순하면 <b>과소적합</b>, 너무 복잡하면 <b>과적합</b>. 그 사이 <b>적절한 균형점</b>을 찾는 게 핵심입니다.</p>
+  </div>
+</section>
+
+<!-- 14 편향-분산 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>편향-분산 트레이드오프</div>
+  <h2 class="slide-title">편향과 분산, 영원한 줄다리기</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col old">
+        <h4>높은 편향 (과소적합)</h4>
+        <p>모델이 너무 단순해 <b>일관되게 틀림</b></p>
+        <p>핵심 패턴조차 못 잡음</p>
+      </div>
+      <div class="col old">
+        <h4>높은 분산 (과적합)</h4>
+        <p>데이터가 조금만 바뀌어도 <b>예측이 크게 출렁</b></p>
+        <p>학습 데이터만 잘 맞춤</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 다트판</div>
+      <p><b>높은 편향</b>: 화살이 한곳에 모이지만 <b>과녁에서 빗나감</b>(일관되게 틀림). <b>높은 분산</b>: 사방에 흩어짐(들쭉날쭉). 좋은 모델은 <b>과녁 중앙에 모이게</b> — 둘의 균형을 맞춥니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 15 퀴즈 2 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>과적합 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="2">
+      <span class="q-tag">QUIZ 02</span>
+      <div class="q">다항 회귀에서 <b>차수(degree)를 15처럼 매우 높게</b> 했더니, 학습 데이터는 완벽히 맞지만 새 데이터는 엉망입니다. 이 현상은?</div>
+      <div class="opts">
+        <div class="opt">① 과소적합 (편향이 높음)</div>
+        <div class="opt">② 데이터 부족 문제</div>
+        <div class="opt">③ 과적합 (분산이 높음)</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ③  과적합</b> — 모델이 너무 복잡해 노이즈까지 외운 상태(높은 분산). 다음 섹션의 '규제'로 이를 완화할 수 있어요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 06</div>
+  <h2>규제 선형 모델 — 릿지·라쏘·엘라스틱넷</h2>
+  <p class="sec-desc">과적합을 막는 영리한 장치. 모델에게 "너무 욕심내지 마"라고 제동을 겁니다.</p>
+</section>
+
+<!-- 16 규제 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>규제(Regularization)</div>
+  <h2 class="slide-title">규제 — 회귀 계수에 제동 걸기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <p style="font-size:1.2rem">과적합된 모델은 <b>회귀 계수가 비정상적으로 커지는</b> 경향이 있어요. 규제는 <b>계수가 너무 커지지 않도록 벌점</b>을 줍니다.</p>
+        <ul class="clean">
+          <li><b>alpha</b>: 규제 강도 (클수록 강하게 제동)</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 과외 선생님</div>
+        <p>"이 점들에 무조건 다 맞춰!"가 아니라, <b>"적당히 단순하게 가, 욕심 부리지 마"</b>라고 옆에서 잡아주는 코치. 그 결과 새 데이터에도 잘 통하는 <b>일반화된 모델</b>이 됩니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 17 릿지/라쏘/엘라스틱 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>세 가지 규제 모델</div>
+  <h2 class="slide-title">릿지 · 라쏘 · 엘라스틱넷</h2>
+  <div class="body-content">
+    <div class="compare three">
+      <div class="col new">
+        <h4>릿지 (Ridge)</h4>
+        <p>계수를 <b>작게</b> 줄임 (L2)</p>
+        <p>0이 되진 않음</p>
+        <p>무난한 기본 선택</p>
+      </div>
+      <div class="col new">
+        <h4>라쏘 (Lasso)</h4>
+        <p>불필요한 계수를 <b>0으로</b> (L1)</p>
+        <p>= 피처 선택 효과</p>
+        <p>중요한 피처만 남김</p>
+      </div>
+      <div class="col new">
+        <h4>엘라스틱넷</h4>
+        <p>릿지 + 라쏘 <b>혼합</b></p>
+        <p>두 장점 절충</p>
+        <p>피처 많을 때 유용</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.2rem">
+      <div class="tag">💡 비유 · 짐 줄이기</div>
+      <p><b>릿지</b>는 모든 짐을 조금씩 가볍게, <b>라쏘</b>는 안 쓰는 짐을 <b>아예 버림</b>(0으로). 라쏘는 그래서 "어떤 피처가 중요한가"를 자동으로 골라줍니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 18 alpha + 코드 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>alpha 효과</div>
+  <h2 class="slide-title">규제 강도(alpha) 조절해보기</h2>
+  <div class="body-content">
+    <div class="code"><span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> Ridge
+
+<span class="cm"># alpha를 0 → 100으로 키우며 RMSE 비교</span>
+<span class="kw">for</span> alpha <span class="kw">in</span> [<span class="nm">0</span>, <span class="nm">0.1</span>, <span class="nm">1</span>, <span class="nm">10</span>, <span class="nm">100</span>]:
+    ridge = <span class="fn">Ridge</span>(alpha=alpha)
+    <span class="cm"># cross_val_score로 평균 RMSE 측정 → 적절한 alpha 탐색</span></div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 핵심 직관</div>
+      <p><b>alpha=0</b>이면 규제 없음(=일반 선형 회귀). <b>alpha를 키울수록</b> 계수들이 0 쪽으로 눌려 모델이 단순해집니다. 너무 크면 과소적합. 적절한 alpha를 <b>교차 검증으로 찾는</b> 게 정석이에요.</p>
+    </div>
+    <p class="note">📌 선형 회귀 전에 <b>스케일링·로그 변환</b>을 하면 규제 모델 성능이 더 좋아지는 경우가 많습니다.</p>
+  </div>
+</section>
+
+<!-- SECTION 5 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 07-08</div>
+  <h2>로지스틱 회귀 & 회귀 트리</h2>
+  <p class="sec-desc">이름에 속지 마세요. 그리고 4장의 트리들이 회귀로 변신합니다.</p>
+</section>
+
+<!-- 19 로지스틱 회귀 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>로지스틱 회귀</div>
+  <h2 class="slide-title">'회귀'라는 이름의 분류 모델 🤯</h2>
+  <div class="body-content">
+    <div class="warn">
+      <div class="tag">⚠️ 이름의 함정</div>
+      <p>로지스틱 <b>'회귀'</b>는 숫자가 아니라 <b>범주(0/1)를 예측하는 분류 모델</b>입니다! 선형 회귀에 시그모이드 함수를 씌워 <b>'확률'</b>을 출력하게 만든 것이라 이름에 회귀가 붙었어요.</p>
+    </div>
+    <div class="two-col" style="margin-top:1.2rem">
+      <div class="code sm"><span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+lr = <span class="fn">LogisticRegression</span>()
+<span class="cm"># 유방암 분류 → accuracy 0.977, AUC 0.995</span></div>
+      <div class="analogy">
+        <div class="tag">💡 기억할 점</div>
+        <p>실무에서 <b>분류의 baseline</b>으로 자주 씁니다. 빠르고, 해석 쉽고, 확률을 주니까요. 3·4장의 분류 실습에서 이미 만났던 친구!</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 20 회귀 트리 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>회귀 트리</div>
+  <h2 class="slide-title">트리로 숫자 예측하기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <p style="font-size:1.2rem">4장의 트리 모델들은 <b>회귀 버전</b>도 있어요. 잎 노드에서 <b>분류 대신 평균값</b>을 예측합니다.</p>
+        <div class="code sm">DecisionTree<b style="color:#00d4ff">Regressor</b>
+RandomForest<b style="color:#00d4ff">Regressor</b>
+XGB<b style="color:#00d4ff">Regressor</b>, LGBM<b style="color:#00d4ff">Regressor</b></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 계단식 예측</div>
+        <p>선형 회귀가 <b>매끈한 직선/곡선</b>이라면, 회귀 트리는 <b>계단 모양</b>으로 예측합니다. "소득 3만 달러 구간은 평균 15만, 5만 달러 구간은 평균 22만"처럼 구간별 평균을 내는 거예요.</p>
+      </div>
+    </div>
+    <p class="note">🔑 분류는 <b>Classifier</b>, 회귀는 <b>Regressor</b>. 사이킷런은 이렇게 짝을 이뤄요. 캘리포니아 집값에서도 트리 계열(RMSE <b>0.63~0.65</b>)이 선형 회귀(<b>0.746</b>)보다 좋은 성능을 냅니다.</p>
+  </div>
+</section>
+
+<!-- 21 퀴즈 3 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>모델 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="1">
+      <span class="q-tag">QUIZ 03</span>
+      <div class="q"><b>로지스틱 회귀(Logistic Regression)</b>는 실제로 어떤 문제를 푸는 모델일까요?</div>
+      <div class="opts">
+        <div class="opt">① 숫자를 예측하는 회귀 모델</div>
+        <div class="opt">② 범주를 예측하는 분류 모델</div>
+        <div class="opt">③ 데이터를 군집화하는 모델</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ②  분류 모델</b> — 이름은 '회귀'지만 0/1 같은 범주를 예측합니다. 확률을 출력해 임계값으로 분류하죠. 이름의 함정에 주의!</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 09-10</div>
+  <h2>실전 실습 — 자전거 대여 & 집값 예측</h2>
+  <p class="sec-desc">시간 피처 다루기, 로그 변환, 모델 혼합까지. 캐글 회귀 대회의 흐름을 경험합니다.</p>
+</section>
+
+<!-- 22 자전거 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>자전거 대여 수요 예측</div>
+  <h2 class="slide-title">"이 시간에 자전거가 몇 대 빌려질까?"</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li><b>datetime에서 시간 피처 추출</b>: 연·월·일·시 분리</li>
+          <li>날씨·계절·근무일 등으로 대여량(count) 예측</li>
+          <li>평가지표: <b>RMSLE</b> (로그 기반 RMSE)</li>
+        </ul>
+      </div>
+      <div class="code sm"><span class="cm"># 날짜를 쪼개 새 피처 만들기</span>
+df[<span class="st">'hour'</span>] = df.datetime.<span class="fn">apply</span>(<span class="kw">lambda</span> x: x.hour)
+df[<span class="st">'month'</span>] = df.datetime.<span class="fn">apply</span>(<span class="kw">lambda</span> x: x.month)</div>
+    </div>
+    <div class="analogy" style="margin-top:1.1rem">
+      <div class="tag">💡 피처 엔지니어링의 힘</div>
+      <p>"2011-01-20 08:00"이라는 한 덩어리보다, <b>'8시', '1월', '겨울'</b>로 쪼개면 모델이 패턴을 훨씬 잘 잡습니다. 출퇴근 시간대 수요 급증 같은 걸요. <b>좋은 피처가 좋은 모델을 만듭니다.</b></p>
+    </div>
+  </div>
+</section>
+
+<!-- 23 로그 변환 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>로그 변환의 위력</div>
+  <h2 class="slide-title">타깃이 한쪽으로 쏠려 있을 때</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="analogy">
+        <div class="tag">💡 비유 · 고무줄 펴기</div>
+        <p>대여량·집값처럼 <b>대부분 작고 일부만 매우 큰</b> 데이터는 분포가 한쪽으로 쏠립니다. <b>로그 변환(np.log1p)</b>은 큰 값을 꾹 눌러 <b>고르게 펴줘</b>, 모델이 더 잘 학습하게 합니다.</p>
+      </div>
+      <div class="code sm"><span class="cm"># 타깃을 로그 변환 후 학습</span>
+y_log = np.<span class="fn">log1p</span>(y)
+<span class="cm"># 예측 후엔 다시 원래 스케일로</span>
+pred = np.<span class="fn">expm1</span>(model.<span class="fn">predict</span>(X))</div>
+    </div>
+    <div class="warn" style="margin-top:1.1rem">
+      <div class="tag">⚠️ 잊지 마세요</div>
+      <p>로그로 변환해 학습했다면, 예측값은 <b>expm1로 되돌려야</b> 실제 단위가 됩니다. log1p ↔ expm1은 짝꿍이에요. (4장 신용카드 로그 변환과 같은 기법!)</p>
+    </div>
+  </div>
+</section>
+
+<!-- 24 집값 예측 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>캐글 주택 가격 예측</div>
+  <h2 class="slide-title">79개 피처로 집값 맞히기</h2>
+  <div class="body-content">
+    <div class="flow">
+      <div class="step"><div class="n">① 타깃 로그변환</div><div class="s">SalePrice</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">② 결측치 처리</div><div class="s">평균/제거</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">③ 원-핫 인코딩</div><div class="s">get_dummies</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">④ 모델 학습</div><div class="s">릿지·라쏘·XGB</div></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 종합 실습</div>
+      <p>지금까지 배운 모든 것의 총집합입니다. 결측치 처리(1장)·인코딩(2장)·규제 회귀(5장)·로그 변환을 한 데이터셋에 적용해요. <b>실전 캐글 대회가 딱 이런 흐름</b>입니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 25 모델 혼합/스태킹 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>예측 결과 혼합 & 스태킹</div>
+  <h2 class="slide-title">여러 모델을 섞어 마지막 한 방울까지</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li><b>혼합(Blending)</b>: 여러 모델 예측을 <b>가중 평균</b> (예: 릿지 0.4 + 라쏘 0.6)</li>
+          <li><b>스태킹</b>: 예측들을 메타 모델의 입력으로 (4장 복습)</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 여러 일기예보 종합</div>
+        <p>한 방송사 예보보다 <b>여러 예보를 종합</b>하면 더 정확하죠. 회귀에서도 서로 다른 모델의 예측을 <b>섞으면</b> 단일 모델보다 안정적이고 정확해집니다.</p>
+      </div>
+    </div>
+    <p class="note">🔑 캐글 상위권의 비밀: 좋은 단일 모델 + <b>여러 모델의 앙상블/혼합</b>. 마지막 0.1%를 짜내는 기법이에요.</p>
+  </div>
+</section>
+
+<!-- 정리 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>5장 핵심 정리</div>
+  <h2 class="slide-title">오늘의 한 페이지 요약</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card accent"><h3><span class="ico">📏</span>선형 회귀 & 경사하강</h3><p>점들 사이 최적의 선 찾기. 비용을 줄이며 한 걸음씩(경사 하강). 평가는 <b>RMSE·R²</b>.</p></div>
+      <div class="card accent"><h3><span class="ico">🎯</span>과적합 & 규제</h3><p>차수↑면 과적합(편향-분산). <b>릿지·라쏘</b>로 계수에 제동.</p></div>
+      <div class="card accent"><h3><span class="ico">🌳</span>로지스틱 & 회귀 트리</h3><p>로지스틱='회귀'지만 분류. 트리 계열은 <b>Regressor</b>로 회귀도 가능.</p></div>
+      <div class="card accent"><h3><span class="ico">🛠️</span>실전 기법</h3><p>시간 피처 추출, <b>로그 변환</b>(log1p↔expm1), 모델 혼합·스태킹.</p></div>
+    </div>
+    <p class="note" style="margin-top:1.2rem">✅ 이제 <b>분류(4장)와 회귀(5장)</b>, 지도학습의 양 날개를 모두 갖췄습니다. 대부분의 실무 예측 문제를 다룰 수 있어요!</p>
+  </div>
+</section>
+
+<!-- 마무리 -->
+<section class="slide cover">
+  <div class="chapter-tag">NEXT · CHAPTER 06</div>
+  <h1>피처가 너무 많을 땐?<br>차원을 줄이자 🗜️</h1>
+  <p class="sub">집값 예측에서 피처가 79개나 됐죠. 다음 장 <b style="color:#fff">차원 축소</b>는 수많은 피처를 <b style="color:#fff">핵심만 압축</b>하는 법을 배웁니다. PCA·LDA·SVD로 데이터를 더 가볍고 똑똑하게.</p>
+  <p class="sub" style="margin-top:1.3rem;font-size:1.22rem;color:#9fb3c8">💪 숙제: 자전거 대여 데이터에 LinearRegression과 RandomForestRegressor를 적용하고 RMSLE를 비교해 보기.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 5장 끝 · 수고했습니다!</div>
+</section>
+
+</div>
+
+<div id="sectionlabel">5장 · 회귀 (Regression)</div>
+<div class="hint">← → 또는 스페이스로 이동 · F 전체화면</div>
+<div id="hud">
+  <button onclick="go(-1)" aria-label="이전">‹</button>
+  <span class="counter"><span id="cur">1</span> / <span id="total">1</span></span>
+  <button onclick="go(1)" aria-label="다음">›</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+  function render(){
+    slides.forEach((s,i)=>s.classList.toggle('active', i===idx));
+    document.getElementById('cur').textContent = idx+1;
+    document.getElementById('progress').style.width = ((idx+1)/slides.length*100)+'%';
+  }
+  function go(d){const n=idx+d;if(n>=0&&n<slides.length){idx=n;render();}}
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(-1);}
+    else if(e.key==='Home'){idx=0;render();}
+    else if(e.key==='End'){idx=slides.length-1;render();}
+    else if(e.key.toLowerCase()==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+  });
+  document.getElementById('deck').addEventListener('click', e=>{
+    if(e.target.closest('.opt,.reveal-btn,button,a'))return;
+    const x=e.clientX/window.innerWidth;go(x<0.25?-1:1);
+  });
+  function revealQuiz(btn){
+    const quiz=btn.closest('.quiz');
+    const ansIdx=parseInt(quiz.dataset.answer,10);
+    const opts=quiz.querySelectorAll('.opt');
+    if(opts[ansIdx])opts[ansIdx].classList.add('reveal-correct');
+    quiz.querySelector('.answer').classList.add('show');
+    btn.style.display='none';
+  }
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>8장 · 텍스트 분석 (Text Analytics)</title>
+<style>
+  :root{
+    --blurple:#635bff;--blurple-2:#7a73ff;--cyan:#00d4ff;--pink:#ff7eb3;
+    --navy:#0a2540;--slate:#425466;--slate-2:#697386;--bg:#f6f9fc;--card:#ffffff;--line:#e6ebf1;
+    --code-bg:#0a1530;
+    --grad:linear-gradient(118deg,#635bff 0%,#7a73ff 38%,#00d4ff 100%);
+    --grad-warm:linear-gradient(118deg,#635bff 0%,#a855f7 50%,#ff7eb3 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#0a2540;color:var(--navy);overflow:hidden;-webkit-font-smoothing:antialiased;}
+  #deck{position:fixed;inset:0;}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;padding:5.2vh 6.5vw 6vh;background:var(--bg);overflow:hidden;}
+  .slide.active{display:flex;animation:fade .45s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  .slide::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--grad);}
+  .slide.dark::before{display:none;}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:700;color:var(--blurple);margin-bottom:1.1rem;}
+  .kicker .dot{width:9px;height:9px;border-radius:50%;background:var(--grad);}
+  h2.slide-title{font-size:2.15rem;line-height:1.18;font-weight:800;letter-spacing:-.02em;color:var(--navy);margin-bottom:1.4rem;}
+  .lead{font-size:1.42rem;line-height:1.6;color:var(--slate);max-width:62ch;}
+  .body-content{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;}
+  p{font-size:1.22rem;line-height:1.62;color:var(--slate);}
+  .grad-text{background:var(--grad-warm);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .slide.cover,.slide.section{background:#0a2540;color:#fff;justify-content:center;}
+  .slide.cover::after,.slide.section::after{content:"";position:absolute;inset:0;z-index:0;
+    background:radial-gradient(60% 80% at 78% 18%,rgba(0,212,255,.32),transparent 60%),
+      radial-gradient(70% 90% at 12% 88%,rgba(168,85,247,.40),transparent 60%),
+      radial-gradient(50% 60% at 50% 50%,rgba(99,91,255,.30),transparent 70%);}
+  .slide.cover>*,.slide.section>*{position:relative;z-index:1;}
+  .slide.cover h1{font-size:3.4rem;font-weight:800;line-height:1.1;letter-spacing:-.03em;color:#fff;margin-bottom:1.4rem;}
+  .slide.cover .sub{font-size:1.48rem;color:#c5d2e0;font-weight:500;max-width:64ch;line-height:1.55;}
+  .slide.cover .chapter-tag{display:inline-block;font-size:1.1rem;font-weight:700;color:#fff;background:var(--grad);padding:.5rem 1.2rem;border-radius:999px;margin-bottom:1.8rem;}
+  .slide.cover .footer-note{position:absolute;bottom:6vh;left:6.5vw;color:#8aa0b8;font-size:1rem;z-index:1;}
+  .slide.section .sec-num{font-size:1.3rem;font-weight:700;color:var(--cyan);margin-bottom:1rem;letter-spacing:.05em;}
+  .slide.section h2{font-size:2.9rem;font-weight:800;color:#fff;line-height:1.12;letter-spacing:-.02em;}
+  .slide.section .sec-desc{font-size:1.35rem;color:#c5d2e0;margin-top:1.3rem;max-width:60ch;line-height:1.55;}
+  .grid{display:grid;gap:1.2rem;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:1.3rem 1.45rem;box-shadow:0 2px 10px rgba(10,37,64,.05);}
+  .card h3{font-size:1.3rem;font-weight:750;color:var(--navy);margin-bottom:.5rem;display:flex;align-items:center;gap:.6rem;}
+  .card p{font-size:1.08rem;line-height:1.48;color:var(--slate);}
+  .card .ico{font-size:1.45rem;}
+  .card.accent{border-top:4px solid transparent;border-image:var(--grad) 1;}
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:.85rem;}
+  ul.clean li{font-size:1.24rem;line-height:1.5;color:var(--slate);padding-left:2rem;position:relative;}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.5em;width:11px;height:11px;border-radius:3px;background:var(--grad);}
+  ul.clean li b{color:var(--navy);font-weight:750;}
+  .code{background:var(--code-bg);border-radius:14px;padding:1.05rem 1.3rem;font-family:"SF Mono","JetBrains Mono",Consolas,monospace;font-size:1.0rem;line-height:1.6;color:#e2e8f0;overflow:auto;box-shadow:0 8px 30px rgba(10,21,48,.35);}
+  .code.sm{font-size:.92rem;}
+  .code .cm{color:#7c89a8;font-style:italic;}
+  .code .kw{color:#ff7eb3;}.code .fn{color:#00d4ff;}.code .st{color:#9be6a8;}.code .nm{color:#ffd479;}.code .out{color:#7c89a8;}
+  .code-label{font-size:.95rem;font-weight:700;color:var(--slate-2);margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;}
+  .code-label::before{content:"▸";color:var(--blurple);}
+  .analogy{background:linear-gradient(135deg,#f0f1ff,#fdf2f8);border:1px solid #e3e0ff;border-left:5px solid var(--blurple);border-radius:14px;padding:1.05rem 1.35rem;}
+  .analogy .tag{font-size:.95rem;font-weight:800;color:var(--blurple);margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem;}
+  .analogy p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .analogy p b{color:var(--blurple);}
+  .warn{background:linear-gradient(135deg,#fffbeb,#fff7ed);border:1px solid #fde68a;border-left:5px solid #f59e0b;border-radius:14px;padding:1.05rem 1.35rem;}
+  .warn .tag{font-size:.95rem;font-weight:800;color:#b45309;margin-bottom:.35rem;}
+  .warn p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .warn p b{color:#b45309;}
+  .quiz{background:#fff;border:2px dashed var(--blurple-2);border-radius:18px;padding:1.4rem 1.6rem;}
+  .quiz .q-tag{display:inline-flex;align-items:center;gap:.5rem;background:var(--grad);color:#fff;font-weight:700;font-size:1rem;padding:.35rem 1rem;border-radius:999px;margin-bottom:.9rem;}
+  .quiz .q{font-size:1.35rem;font-weight:700;color:var(--navy);line-height:1.45;margin-bottom:1rem;}
+  .quiz .opts{display:flex;flex-direction:column;gap:.55rem;}
+  .quiz .opt{font-size:1.15rem;color:var(--slate);padding:.6rem 1.1rem;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;transition:.18s;}
+  .quiz .opt:hover{border-color:var(--blurple-2);background:#f7f7ff;}
+  .quiz .opt.reveal-correct{border-color:#22c55e;background:#f0fdf4;color:#15803d;font-weight:700;}
+  .quiz .answer{margin-top:.9rem;font-size:1.1rem;color:var(--slate);display:none;}
+  .quiz .answer.show{display:block;animation:fade .3s;}
+  .quiz .answer b{color:#15803d;}
+  .reveal-btn{margin-top:.8rem;background:var(--blurple);color:#fff;border:none;font-size:1.02rem;font-weight:700;padding:.5rem 1.25rem;border-radius:10px;cursor:pointer;font-family:inherit;}
+  .reveal-btn:hover{background:#5249e0;}
+  .practice{background:linear-gradient(135deg,#0a2540,#1a1f4d);color:#fff;border-radius:16px;padding:1.2rem 1.5rem;}
+  .practice .p-tag{display:inline-flex;align-items:center;gap:.5rem;color:var(--cyan);font-weight:800;font-size:1.02rem;margin-bottom:.5rem;}
+  .practice p{color:#d4dff0;font-size:1.12rem;line-height:1.5;}
+  .practice code{background:rgba(0,212,255,.14);color:#7fe9ff;padding:.15em .5em;border-radius:6px;font-family:"SF Mono",monospace;font-size:.95em;}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .compare.three{grid-template-columns:1fr 1fr 1fr;}
+  .compare .col{padding:1.2rem 1.4rem;}
+  .compare .col.old{background:#fff;}
+  .compare .col.new{background:linear-gradient(135deg,#f0f1ff,#faf5ff);}
+  .compare .col h4{font-size:1.18rem;font-weight:800;margin-bottom:.7rem;}
+  .compare .col.old h4{color:var(--slate-2);}
+  .compare .col.new h4{color:var(--blurple);}
+  .compare .col p{font-size:1.05rem;line-height:1.42;margin-bottom:.5rem;}
+  .note{font-size:1.02rem;color:var(--slate-2);margin-top:.75rem;line-height:1.48;}
+  .note b{color:var(--navy);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem;align-items:center;}
+  .stack{display:flex;flex-direction:column;gap:.9rem;}
+  .flow{display:flex;align-items:stretch;gap:.5rem;margin:.4rem 0;flex-wrap:wrap;}
+  .flow .step{flex:1;min-width:110px;background:var(--grad);color:#fff;border-radius:14px;padding:.85rem .7rem;text-align:center;box-shadow:0 6px 18px rgba(99,91,255,.22);}
+  .flow .step .n{font-size:1.05rem;font-weight:800;}
+  .flow .step .s{font-size:.82rem;opacity:.9;margin-top:.15rem;}
+  .flow .arr{display:flex;align-items:center;font-size:1.4rem;color:var(--blurple);font-weight:800;}
+  table.simple{border-collapse:collapse;width:100%;font-size:1.02rem;}
+  table.simple th,table.simple td{border:1px solid var(--line);padding:.5rem .65rem;text-align:center;}
+  table.simple th{background:#f0f1ff;color:var(--navy);font-weight:800;}
+  table.simple td{color:var(--slate);}
+  table.simple tr:nth-child(even) td{background:#fafbfd;}
+  table.simple .hi{color:var(--blurple);font-weight:800;}
+  table.simple td.l,table.simple th.l{text-align:left;}
+  .bowviz{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+  .bowviz .doc{background:#fff;border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;font-size:1.05rem;color:var(--navy);max-width:280px;box-shadow:0 2px 8px rgba(10,37,64,.05);}
+  .bowviz .vec{display:flex;gap:.35rem;flex-wrap:wrap;}
+  .bowviz .vec span{background:var(--grad);color:#fff;border-radius:8px;padding:.35rem .55rem;font-family:monospace;font-size:.9rem;font-weight:700;}
+  #progress{position:fixed;top:0;left:0;height:4px;background:var(--grad);z-index:100;transition:width .35s ease;}
+  #hud{position:fixed;bottom:1.4vh;right:2vw;z-index:100;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem .9rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  #hud .counter{font-size:.95rem;font-weight:700;color:var(--slate);font-variant-numeric:tabular-nums;}
+  #hud button{border:none;background:transparent;cursor:pointer;font-size:1.3rem;color:var(--blurple);width:30px;height:30px;border-radius:50%;line-height:1;display:flex;align-items:center;justify-content:center;}
+  #hud button:hover{background:#eef0ff;}
+  #sectionlabel{position:fixed;bottom:1.4vh;left:2vw;z-index:100;font-size:.95rem;font-weight:700;color:var(--slate-2);background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem 1rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  .hint{position:fixed;bottom:1.4vh;left:50%;transform:translateX(-50%);z-index:100;font-size:.85rem;color:#8aa0b8;}
+  @media (max-width:1100px){h2.slide-title{font-size:1.85rem;}.slide.cover h1{font-size:2.5rem;}.slide.section h2{font-size:2.2rem;}.lead{font-size:1.18rem;}.grid-3,.grid-4{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="deck">
+
+<!-- 1 COVER -->
+<section class="slide cover active">
+  <div class="chapter-tag">CHAPTER 08</div>
+  <h1>텍스트 분석<br><span style="font-size:2.1rem;font-weight:700;color:#c5d2e0">Text Analytics</span></h1>
+  <p class="sub">숫자·표를 넘어, 이제 <b style="color:#fff">'글'</b>을 다룹니다. 리뷰·뉴스를 숫자로 바꿔(벡터화) 분류·감성 분석·토픽 모델링까지. 컴퓨터가 어떻게 언어를 이해하는지 그 첫걸음.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 강의자료 (분량이 큰 장)</div>
+</section>
+
+<!-- 2 복습+목표 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>7장 복습 & 8장 목표</div>
+  <h2 class="slide-title">핵심 질문: 컴퓨터는 '글'을 모른다</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <div class="card"><h3>🤔 문제</h3><p>지금까지 모델은 <b>숫자</b>만 먹었습니다. 그런데 "이 영화 재밌어요!" 같은 <b>글</b>은 어떻게 넣을까요?</p></div>
+        <div class="card accent"><h3>🎯 8장의 핵심</h3><p>글을 <b>숫자(벡터)로 바꾸는 것(피처 벡터화).</b> 일단 숫자가 되면, 4·5장의 모델을 그대로 씁니다!</p></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 외국어 번역기</div>
+        <p>컴퓨터는 '숫자'라는 언어만 압니다. 텍스트 분석의 절반은 <b>사람의 글 → 컴퓨터의 숫자</b>로 번역하는 일이에요. 번역만 잘 되면, 나머지는 우리가 이미 아는 머신러닝입니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 목차 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>8장의 큰 흐름</div>
+  <h2 class="slide-title">오늘의 지도</h2>
+  <div class="body-content">
+    <ul class="clean">
+      <li><b>텍스트 전처리</b> — 글을 깨끗하게 다듬기 (정규화·토큰화)</li>
+      <li><b>BOW & 벡터화</b> — 글을 숫자로! (Count, TF-IDF)</li>
+      <li><b>텍스트 분류</b> — 20 뉴스그룹 분류 (+Pipeline)</li>
+      <li><b>감성 분석</b> — 긍정/부정 판별 (지도 & 비지도)</li>
+      <li><b>토픽 모델링·문서 군집화·유사도</b> — 숨은 주제와 닮음 찾기</li>
+      <li><b>한글 처리 & 실습</b> — KoNLPy, 네이버 영화, Mercari</li>
+    </ul>
+  </div>
+</section>
+
+<!-- SECTION 1 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 01-02</div>
+  <h2>텍스트 분석 이해와 전처리</h2>
+  <p class="sec-desc">분석에 앞서, 날것의 글을 모델이 다루기 좋게 '정규화'하는 법부터.</p>
+</section>
+
+<!-- 5 프로세스 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>텍스트 분석 프로세스</div>
+  <h2 class="slide-title">텍스트 분석의 3단계 흐름</h2>
+  <div class="body-content">
+    <div class="flow">
+      <div class="step"><div class="n">① 전처리</div><div class="s">정규화·토큰화</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">② 벡터화</div><div class="s">글 → 숫자</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">③ 모델 적용</div><div class="s">분류·군집·감성</div></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 NLP vs 텍스트 분석?</div>
+      <p><b>NLP</b>(자연어 처리)는 기계가 언어를 '이해'하는 데 초점(번역·챗봇), <b>텍스트 분석</b>은 텍스트에서 '의미 있는 정보·예측'을 뽑는 데 초점(감성·분류). 겹치는 부분이 많아요. 이 장은 <b>텍스트 분석</b> 관점입니다.</p>
+    </div>
+    <p class="note">📌 핵심 패키지: <b>NLTK</b>(전통적·교육용), <b>SpaCy</b>(실무용), <b>KoNLPy</b>(한글). 사이킷런도 벡터화 기능 제공.</p>
+  </div>
+</section>
+
+<!-- 6 텍스트 정규화 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>텍스트 정규화</div>
+  <h2 class="slide-title">글 다듬기 — 4가지 정규화</h2>
+  <div class="body-content">
+    <div class="grid grid-4">
+      <div class="card"><h3>🧹 클렌징</h3><p>HTML 태그·특수문자 등 <b>불필요한 것 제거</b></p></div>
+      <div class="card"><h3>✂️ 토큰화</h3><p>문장·단어 단위로 <b>쪼개기</b></p></div>
+      <div class="card"><h3>🚫 스톱워드</h3><p>the, is, 은/는 등 <b>의미 적은 단어 제거</b></p></div>
+      <div class="card"><h3>🌱 어근 추출</h3><p>running→run 등 <b>원형으로 통일</b></p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 비유 · 요리 재료 손질</div>
+      <p>글을 분석하기 전, <b>씻고(클렌징)·썰고(토큰화)·안 쓸 부분 버리고(스톱워드)·규격 통일(어근)</b>하는 손질 과정. 깨끗한 재료라야 좋은 요리가 나오듯, 잘 다듬은 텍스트라야 좋은 분석이 됩니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7 토큰화/스톱워드/어근 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>NLTK로 보기</div>
+  <h2 class="slide-title">토큰화 · 스톱워드 · Stemming/Lemmatization</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code sm"><span class="kw">from</span> nltk <span class="kw">import</span> sent_tokenize, word_tokenize
+<span class="fn">sent_tokenize</span>(text)   <span class="cm"># 문장 단위로</span>
+<span class="fn">word_tokenize</span>(sent)   <span class="cm"># 단어 단위로</span>
+
+<span class="cm"># 어근 추출 두 방식</span>
+<span class="cm"># Stemming: 빠르지만 거침 (work→work)</span>
+<span class="cm"># Lemmatization: 정확 (better→good)</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 Stemming vs Lemmatization</div>
+        <p>둘 다 단어를 <b>원형으로 통일</b>하지만, <b>Stemming</b>은 어미를 거칠게 자르고(빠름), <b>Lemmatization</b>은 문법·사전을 보고 정확한 원형을 찾습니다(느림). "amusing/amused → amuse"처럼요.</p>
+      </div>
+    </div>
+    <p class="note">🔑 왜 원형 통일? "run / runs / running"을 <b>같은 단어로 취급</b>해야 빈도가 제대로 집계됩니다.</p>
+  </div>
+</section>
+
+<!-- 8 퀴즈 1 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>전처리 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="2">
+      <span class="q-tag">QUIZ 01</span>
+      <div class="q"><b>스톱워드(stop words) 제거</b>를 하는 이유로 가장 적절한 것은?</div>
+      <div class="opts">
+        <div class="opt">① 문장을 더 길게 만들기 위해</div>
+        <div class="opt">② 맞춤법을 교정하기 위해</div>
+        <div class="opt">③ 'the, is, 은/는'처럼 의미가 적고 자주 나오는 단어를 빼서 분석을 깔끔하게</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ③</b> — 모든 문서에 흔히 나오는 단어는 변별력이 없어 노이즈가 됩니다. 제거하면 핵심 단어가 더 잘 드러나요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 03</div>
+  <h2>BOW — 글을 숫자로 바꾸기</h2>
+  <p class="sec-desc">텍스트 분석의 심장. 단어를 세어서 글을 벡터(숫자 묶음)로 만듭니다.</p>
+</section>
+
+<!-- 10 BOW 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>Bag of Words</div>
+  <h2 class="slide-title">BOW = 단어를 자루에 담아 세기</h2>
+  <div class="body-content">
+    <div class="bowviz">
+      <div class="doc">"나는 영화를 봤다.<br>영화 재밌다."</div>
+      <div class="flow arr">→</div>
+      <div class="vec"><span>나는:1</span><span>영화:2</span><span>봤다:1</span><span>재밌다:1</span></div>
+    </div>
+    <div class="analogy" style="margin-top:1.5rem">
+      <div class="tag">💡 비유 · 단어 주머니</div>
+      <p>문장의 <b>순서는 무시하고</b>, 어떤 단어가 <b>몇 번 나왔는지</b>만 자루에 담아 세는 방식. "영화"가 2번 나왔으니 영화 칸에 2. 단순하지만 강력해서, 텍스트 분석의 <b>기본 중의 기본</b>입니다.</p>
+    </div>
+    <p class="note">⚠️ 한계: 순서·문맥을 무시함. ("개가 사람을 물다" = "사람이 개를 물다"로 취급) → 그래서 n-gram, 딥러닝이 발전했어요.</p>
+  </div>
+</section>
+
+<!-- 11 Count vs TF-IDF -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>Count vs TF-IDF</div>
+  <h2 class="slide-title">두 가지 벡터화 방식</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col old">
+        <h4>Count 벡터화</h4>
+        <p>단순히 <b>등장 횟수</b>를 셈</p>
+        <p>흔한 단어(the)가 과대평가됨</p>
+        <p style="font-family:monospace;color:#697386">CountVectorizer()</p>
+      </div>
+      <div class="col new">
+        <h4>TF-IDF 벡터화 ⭐</h4>
+        <p>자주 나오되 <b>여러 문서에 흔하면 페널티</b></p>
+        <p>그 문서만의 <b>특징적 단어</b>를 강조</p>
+        <p style="font-family:monospace;color:#635bff">TfidfVectorizer()</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 특별한 단어 찾기</div>
+      <p>모든 리뷰에 "영화"가 나오면 변별력이 없죠. TF-IDF는 <b>"이 문서엔 자주 나오지만, 다른 문서엔 드문"</b> 단어에 높은 점수를 줍니다. 그 문서를 <b>대표하는 키워드</b>를 잘 잡아내요. 실무에선 보통 TF-IDF가 더 좋습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 12 희소 행렬 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>희소 행렬</div>
+  <h2 class="slide-title">벡터화 결과는 '거의 0' — 희소 행렬</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>전체 단어가 <b>수만 개</b>인데, 한 문서엔 <b>수십 개</b>만 등장</li>
+          <li>→ 대부분이 0인 <b>희소 행렬(sparse matrix)</b></li>
+          <li><b>COO·CSR</b> 형식으로 0을 빼고 효율적으로 저장</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 출석부의 빈칸</div>
+        <p>전교생 명단(전체 단어)에서 우리 반(한 문서)에 해당하는 칸만 체크되고 나머지는 다 빈칸이죠. 빈칸(0)을 일일이 저장하면 낭비라, <b>체크된 위치만 기록</b>하는 게 CSR 형식입니다.</p>
+      </div>
+    </div>
+    <p class="note">📌 지금은 "벡터화 결과는 대부분 0이라 <b>특수한 방식으로 저장</b>한다"만 알면 충분. 사이킷런이 알아서 처리해줘요.</p>
+  </div>
+</section>
+
+<!-- 13 퀴즈 2 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>벡터화 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="1">
+      <span class="q-tag">QUIZ 02</span>
+      <div class="q"><b>TF-IDF</b>가 단순 Count 방식보다 나은 점은?</div>
+      <div class="opts">
+        <div class="opt">① 모든 단어를 똑같은 비중으로 센다</div>
+        <div class="opt">② 여러 문서에 흔한 단어는 낮추고, 그 문서만의 특징적 단어를 강조한다</div>
+        <div class="opt">③ 단어 순서를 완벽히 기억한다</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ②</b> — TF-IDF는 흔한 단어에 페널티를 줘, 그 문서를 대표하는 단어를 부각합니다. 그래서 분류·검색에서 보통 더 좋은 성능을 냅니다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 04</div>
+  <h2>텍스트 분류 — 20 뉴스그룹</h2>
+  <p class="sec-desc">벡터화한 글을 4장의 분류 모델에 넣어, 뉴스가 어떤 주제인지 맞힙니다.</p>
+</section>
+
+<!-- 15 20 뉴스그룹 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>20 뉴스그룹 분류</div>
+  <h2 class="slide-title">뉴스 글의 주제를 맞혀보자</h2>
+  <div class="body-content">
+    <div class="code sm"><span class="kw">from</span> sklearn.feature_extraction.text <span class="kw">import</span> TfidfVectorizer
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+
+<span class="cm"># ① 글을 TF-IDF로 벡터화</span>
+tfidf = <span class="fn">TfidfVectorizer</span>(stop_words=<span class="st">'english'</span>)
+X_train_vect = tfidf.<span class="fn">fit_transform</span>(X_train)
+<span class="cm"># ② 익숙한 분류 모델로 학습 → 약 20개 주제 분류</span>
+lr = <span class="fn">LogisticRegression</span>().<span class="fn">fit</span>(X_train_vect, y_train)</div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 핵심: 벡터화 후엔 평범한 분류</div>
+      <p>글이 숫자(벡터)가 되는 순간, 4장에서 배운 <b>로지스틱 회귀·SVM</b> 등을 그대로 씁니다. 텍스트라고 특별할 게 없어요. <b>"벡터화가 8할"</b>이라는 말이 그래서 나옵니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 16 Pipeline -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>Pipeline & GridSearchCV</div>
+  <h2 class="slide-title">벡터화 + 모델을 하나로 묶기</h2>
+  <div class="body-content">
+    <div class="code sm"><span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> Pipeline
+
+pipeline = <span class="fn">Pipeline</span>([
+    (<span class="st">'tfidf'</span>, <span class="fn">TfidfVectorizer</span>(stop_words=<span class="st">'english'</span>, ngram_range=(<span class="nm">1</span>,<span class="nm">2</span>))),
+    (<span class="st">'lr'</span>, <span class="fn">LogisticRegression</span>(C=<span class="nm">10</span>))
+])
+pipeline.<span class="fn">fit</span>(X_train, y_train)   <span class="cm"># 벡터화→학습을 한 번에!</span></div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 컨베이어 벨트</div>
+      <p>Pipeline은 <b>벡터화 → 학습</b>을 한 줄로 이어 붙인 컨베이어 벨트입니다. 단계를 따로 관리할 필요 없고, <b>GridSearchCV로 벡터화 옵션까지 한꺼번에 튜닝</b>할 수 있어요. 실무 필수 패턴!</p>
+    </div>
+    <p class="note">📌 <b>ngram_range=(1,2)</b>: 단어 1개뿐 아니라 '두 단어 묶음'도 피처로 — 약간의 문맥을 살림.</p>
+  </div>
+</section>
+
+<!-- SECTION 4 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 05</div>
+  <h2>감성 분석 (Sentiment Analysis)</h2>
+  <p class="sec-desc">"이 리뷰는 긍정일까 부정일까?" 텍스트 분석에서 가장 인기 있는 응용.</p>
+</section>
+
+<!-- 18 감성분석 개요 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>감성 분석 개요</div>
+  <h2 class="slide-title">두 가지 접근법</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col new">
+        <h4>지도학습 기반</h4>
+        <p>긍정/부정 <b>라벨이 있는</b> 데이터로 학습</p>
+        <p>→ 평범한 분류 문제 (정확도↑)</p>
+        <p>예: IMDB 영화평 (라벨 있음)</p>
+      </div>
+      <div class="col old">
+        <h4>비지도학습 기반</h4>
+        <p>라벨 <b>없이</b> 감성 사전을 이용</p>
+        <p>단어별 긍/부정 점수를 합산</p>
+        <p>예: SentiWordNet, VADER</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 언제 무엇을?</div>
+      <p>라벨 데이터가 있으면 <b>지도학습</b>(더 정확). 라벨이 없거나 새 도메인이면 <b>감성 사전(비지도)</b>으로 빠르게 시작. 둘 다 알아두면 상황에 맞게 골라 쓸 수 있어요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 19 지도 감성분석 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>지도학습 감성 분석 · IMDB</div>
+  <h2 class="slide-title">영화평 긍정/부정 맞히기</h2>
+  <div class="body-content">
+    <div class="code sm"><span class="cm"># ① 전처리: HTML 태그·특수문자 제거 (정규표현식)</span>
+review_df[<span class="st">'review'</span>] = review_df[<span class="st">'review'</span>].<span class="fn">apply</span>(<span class="kw">lambda</span> x: re.<span class="fn">sub</span>(<span class="st">"[^a-zA-Z]"</span>, <span class="st">" "</span>, x))
+
+<span class="cm"># ② Pipeline: TF-IDF + 로지스틱 회귀 → AUC 0.93+</span>
+pipeline = <span class="fn">Pipeline</span>([(<span class="st">'tfidf'</span>, <span class="fn">TfidfVectorizer</span>(...)), (<span class="st">'lr'</span>, <span class="fn">LogisticRegression</span>())])</div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 복습 총동원</div>
+      <p>정규표현식 정제(전처리) + TF-IDF(벡터화) + 로지스틱(분류) + AUC(평가, 3장) + Pipeline. <b>지금까지 배운 게 다 들어갑니다.</b> 텍스트 분석이 어렵게 느껴져도, 결국 익숙한 조각들의 조합이에요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 20 비지도 감성분석 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>비지도 감성 분석</div>
+  <h2 class="slide-title">감성 사전: SentiWordNet · VADER</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card"><h3>📖 SentiWordNet</h3><p>단어마다 <b>긍정·부정·중립 점수</b>가 매겨진 사전. 문장 속 단어 점수를 합산해 판정. 단어 의미(품사)를 고려.</p></div>
+      <div class="card accent"><h3>⚡ VADER</h3><p><b>SNS·소셜 미디어</b>에 특화. 이모티콘·강조(!!!)·속어까지 반영. 빠르고 간편해 실무에서 인기.</p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 비유 · 감정 점수표</div>
+      <p>"좋다 +2, 최악 −3, 그냥 0" 같은 <b>감정 점수표(사전)</b>를 들고 문장의 단어 점수를 더해 총점이 양수면 긍정, 음수면 부정. 학습이 필요 없어 <b>라벨 없이 바로</b> 쓸 수 있는 게 장점이에요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 21 퀴즈 3 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>감성 분석 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="2">
+      <span class="q-tag">QUIZ 03</span>
+      <div class="q">긍정/부정 <b>라벨이 전혀 없는</b> 새로운 리뷰 데이터를 빠르게 감성 분석해야 합니다. 적합한 방법은?</div>
+      <div class="opts">
+        <div class="opt">① 지도학습 (라벨로 학습)</div>
+        <div class="opt">② 라벨이 없으니 분석 자체가 불가능</div>
+        <div class="opt">③ VADER 같은 감성 사전(비지도) 활용</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ③</b> — 라벨이 없으면 학습을 못 하니, 미리 만들어진 감성 사전(VADER, SentiWordNet)으로 단어 점수를 합산해 판정합니다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 5 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 06-08</div>
+  <h2>토픽 모델링 · 문서 군집화 · 유사도</h2>
+  <p class="sec-desc">글 더미에서 숨은 주제를 찾고, 비슷한 문서끼리 묶고, 닮은 정도를 잽니다.</p>
+</section>
+
+<!-- 23 토픽 모델링 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>토픽 모델링 (LDA)</div>
+  <h2 class="slide-title">수천 개 문서의 숨은 주제 찾기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>많은 문서를 분석해 <b>숨은 주제(토픽)</b>를 자동 추출</li>
+          <li>각 토픽 = <b>자주 함께 나오는 단어 묶음</b></li>
+          <li><b>LDA</b>(잠재 디리클레 할당)가 대표 기법</li>
+        </ul>
+        <div class="code sm"><span class="kw">from</span> sklearn.decomposition <span class="kw">import</span> LatentDirichletAllocation
+lda = <span class="fn">LatentDirichletAllocation</span>(n_components=<span class="nm">8</span>)</div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 도서관 자동 분류</div>
+        <p>사서가 수천 권을 일일이 안 읽고도, <b>자주 함께 등장하는 단어</b>로 "이 책들은 스포츠, 저건 정치" 하고 주제를 묶어내는 것. LDA는 라벨 없이 문서 더미의 주제를 발견합니다 (비지도).</p>
+      </div>
+    </div>
+    <p class="note">📌 LDA는 <b>Count 벡터화</b>와 함께 씁니다. (6장의 차원축소 LDA와는 다른 기법, 이름만 같아요!)</p>
+  </div>
+</section>
+
+<!-- 24 문서 군집화 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>문서 군집화</div>
+  <h2 class="slide-title">비슷한 문서끼리 묶기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <p style="font-size:1.2rem">문서를 <b>TF-IDF로 벡터화</b>한 뒤, <b>7장의 K-평균</b>으로 군집화하면 비슷한 내용의 문서끼리 묶입니다.</p>
+        <div class="code sm">tfidf → <span class="fn">KMeans</span>(n_clusters=<span class="nm">5</span>)
+<span class="cm"># 호텔 리뷰가 '청결/위치/가격'</span>
+<span class="cm"># 군집으로 자동 분류</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 7장 + 8장의 결합</div>
+        <p>벡터화(8장)로 글을 숫자로 만들면, <b>7장의 모든 군집화 기법</b>을 그대로 적용할 수 있어요. Opinion Review 실습에선 리뷰들을 주제별로 묶고 <b>군집별 핵심 단어</b>를 뽑아냅니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 25 문서 유사도 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>문서 유사도</div>
+  <h2 class="slide-title">코사인 유사도 — 두 글이 얼마나 닮았나</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="analogy">
+        <div class="tag">💡 비유 · 두 화살의 방향</div>
+        <p>각 문서를 <b>벡터(화살표)</b>로 보면, 두 화살이 <b>같은 방향을 가리킬수록(사잇각이 작을수록) 유사</b>합니다. 크기(글 길이)가 아니라 <b>방향(내용)</b>으로 비교하는 게 코사인 유사도예요.</p>
+      </div>
+      <div class="stack">
+        <ul class="clean">
+          <li><b>1에 가까움</b>: 매우 유사</li>
+          <li><b>0에 가까움</b>: 관련 없음</li>
+        </ul>
+        <div class="code sm"><span class="kw">from</span> sklearn.metrics.pairwise <span class="kw">import</span> cosine_similarity
+<span class="fn">cosine_similarity</span>(vec1, vec2)</div>
+      </div>
+    </div>
+    <p class="note">🔑 검색 엔진·추천("이 글과 비슷한 글")·표절 검사의 핵심 원리입니다. 9장 추천 시스템에서도 다시 등장!</p>
+  </div>
+</section>
+
+<!-- SECTION 6 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 09-10</div>
+  <h2>한글 처리 & 실전 실습</h2>
+  <p class="sec-desc">영어와 다른 한글의 특수성, 그리고 텍스트와 회귀를 결합한 실전 예제.</p>
+</section>
+
+<!-- 27 한글 처리 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>한글 텍스트 처리</div>
+  <h2 class="slide-title">한글은 왜 더 까다로울까?</h2>
+  <div class="body-content">
+    <div class="warn">
+      <div class="tag">⚠️ 한글 NLP의 어려움</div>
+      <p>영어는 띄어쓰기로 단어가 나뉘지만, 한글은 <b>조사·어미가 붙어</b>("학교에서", "학교를") 단순 띄어쓰기로는 부족합니다. <b>형태소 분석</b>(의미 단위로 쪼개기)이 꼭 필요해요.</p>
+    </div>
+    <div class="two-col" style="margin-top:1.2rem">
+      <div class="code sm"><span class="kw">from</span> konlpy.tag <span class="kw">import</span> Okt
+okt = <span class="fn">Okt</span>()
+okt.<span class="fn">morphs</span>(text)   <span class="cm"># 형태소로 토큰화</span></div>
+      <div class="analogy">
+        <div class="tag">💡 KoNLPy</div>
+        <p>한글 형태소 분석 패키지. "학교에서" → "학교/에서"로 의미 단위를 분리해, 이걸 토큰으로 벡터화합니다. (Okt, 꼬꼬마 등)</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 28 네이버 영화 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>네이버 영화 평점 감성 분석</div>
+  <h2 class="slide-title">한글 리뷰로 긍정/부정 판별</h2>
+  <div class="body-content">
+    <div class="flow">
+      <div class="step"><div class="n">① 정제</div><div class="s">숫자·결측 처리</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">② 형태소 토큰화</div><div class="s">KoNLPy</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">③ TF-IDF</div><div class="s">벡터화</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">④ 분류</div><div class="s">로지스틱</div></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 흐름은 영어와 똑같다</div>
+      <p>토큰화 방식(형태소 분석)만 한글용으로 바뀌었을 뿐, <b>전체 흐름은 IMDB 영어 감성 분석과 동일</b>합니다. 한 번 흐름을 익히면 어떤 언어든 적용할 수 있어요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 29 Mercari -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>Mercari 가격 예측 실습</div>
+  <h2 class="slide-title">상품 설명(텍스트)으로 가격 예측</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>상품명·설명(<b>텍스트</b>) + 카테고리·브랜드(<b>범주</b>)로 <b>가격(숫자) 예측</b></li>
+          <li>텍스트는 벡터화, 가격은 <b>로그 변환</b>(5장 복습!)</li>
+          <li>릿지 + LightGBM <b>회귀</b> 모델 활용</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 모든 것의 종합</div>
+        <p>텍스트 분석(8장) + 회귀(5장) + 인코딩(2장) + 로그 변환의 결합! <b>현실 문제는 텍스트·숫자·범주가 섞여</b> 있죠. 이걸 다 합쳐 다루는 게 진짜 데이터 사이언스입니다.</p>
+      </div>
+    </div>
+    <p class="note">📌 텍스트 분석은 <b>단독으로도, 다른 데이터와 결합해서도</b> 쓰입니다. Mercari는 후자의 좋은 예예요.</p>
+  </div>
+</section>
+
+<!-- 정리 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>8장 핵심 정리</div>
+  <h2 class="slide-title">오늘의 한 페이지 요약</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card accent"><h3><span class="ico">🧹</span>전처리 & 벡터화</h3><p>정규화(클렌징·토큰화·스톱워드·어근) → <b>BOW(Count/TF-IDF)</b>로 글을 숫자로. 텍스트 분석의 8할.</p></div>
+      <div class="card accent"><h3><span class="ico">🏷️</span>분류 & 감성</h3><p>벡터화 후엔 평범한 분류. 감성 분석은 <b>지도(라벨)·비지도(감성 사전)</b> 두 길.</p></div>
+      <div class="card accent"><h3><span class="ico">🔍</span>토픽·군집·유사도</h3><p>LDA로 주제 발견, K-평균으로 문서 군집, <b>코사인 유사도</b>로 닮음 측정.</p></div>
+      <div class="card accent"><h3><span class="ico">🇰🇷</span>한글 & 실전</h3><p>한글은 <b>형태소 분석(KoNLPy)</b> 필수. Mercari는 텍스트+회귀의 결합.</p></div>
+    </div>
+    <p class="note" style="margin-top:1.2rem">✅ 핵심 한 문장: <b>"글을 숫자로 바꾸면(벡터화), 나머지는 우리가 아는 머신러닝이다."</b> 이걸 체득했다면 8장 성공!</p>
+  </div>
+</section>
+
+<!-- 마무리 -->
+<section class="slide cover">
+  <div class="chapter-tag">NEXT · CHAPTER 09</div>
+  <h1>"당신을 위한 추천"의<br>비밀 🎬</h1>
+  <p class="sub">넷플릭스·유튜브·쿠팡은 어떻게 내 취향을 알까요? 다음 장 <b style="color:#fff">추천 시스템</b>에서 콘텐츠 기반·협업 필터링·행렬 분해를 배웁니다. 8장의 <b style="color:#fff">코사인 유사도</b>가 여기서 다시 빛을 발합니다.</p>
+  <p class="sub" style="margin-top:1.3rem;font-size:1.22rem;color:#9fb3c8">💪 숙제: IMDB 또는 네이버 영화 리뷰 데이터를 TF-IDF + 로지스틱으로 감성 분석하고 정확도를 확인해 보기.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 8장 끝 · 수고했습니다!</div>
+</section>
+
+</div>
+
+<div id="sectionlabel">8장 · 텍스트 분석</div>
+<div class="hint">← → 또는 스페이스로 이동 · F 전체화면</div>
+<div id="hud">
+  <button onclick="go(-1)" aria-label="이전">‹</button>
+  <span class="counter"><span id="cur">1</span> / <span id="total">1</span></span>
+  <button onclick="go(1)" aria-label="다음">›</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+  function render(){
+    slides.forEach((s,i)=>s.classList.toggle('active', i===idx));
+    document.getElementById('cur').textContent = idx+1;
+    document.getElementById('progress').style.width = ((idx+1)/slides.length*100)+'%';
+  }
+  function go(d){const n=idx+d;if(n>=0&&n<slides.length){idx=n;render();}}
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(-1);}
+    else if(e.key==='Home'){idx=0;render();}
+    else if(e.key==='End'){idx=slides.length-1;render();}
+    else if(e.key.toLowerCase()==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+  });
+  document.getElementById('deck').addEventListener('click', e=>{
+    if(e.target.closest('.opt,.reveal-btn,button,a'))return;
+    const x=e.clientX/window.innerWidth;go(x<0.25?-1:1);
+  });
+  function revealQuiz(btn){
+    const quiz=btn.closest('.quiz');
+    const ansIdx=parseInt(quiz.dataset.answer,10);
+    const opts=quiz.querySelectorAll('.opt');
+    if(opts[ansIdx])opts[ansIdx].classList.add('reveal-correct');
+    quiz.querySelector('.answer').classList.add('show');
+    btn.style.display='none';
+  }
+  render();
+</script>
+</body>
+</html>

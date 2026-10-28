@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3장 · 평가 (Evaluation)</title>
+<style>
+  :root{
+    --blurple:#635bff;--blurple-2:#7a73ff;--cyan:#00d4ff;--pink:#ff7eb3;
+    --navy:#0a2540;--slate:#425466;--slate-2:#697386;--bg:#f6f9fc;--card:#ffffff;--line:#e6ebf1;
+    --code-bg:#0a1530;
+    --grad:linear-gradient(118deg,#635bff 0%,#7a73ff 38%,#00d4ff 100%);
+    --grad-warm:linear-gradient(118deg,#635bff 0%,#a855f7 50%,#ff7eb3 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#0a2540;color:var(--navy);overflow:hidden;-webkit-font-smoothing:antialiased;}
+  #deck{position:fixed;inset:0;}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;padding:5.2vh 6.5vw 6vh;background:var(--bg);overflow:hidden;}
+  .slide.active{display:flex;animation:fade .45s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  .slide::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--grad);}
+  .slide.dark::before{display:none;}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:700;color:var(--blurple);margin-bottom:1.1rem;}
+  .kicker .dot{width:9px;height:9px;border-radius:50%;background:var(--grad);}
+  h2.slide-title{font-size:2.2rem;line-height:1.18;font-weight:800;letter-spacing:-.02em;color:var(--navy);margin-bottom:1.5rem;}
+  .lead{font-size:1.45rem;line-height:1.6;color:var(--slate);max-width:62ch;}
+  .body-content{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;}
+  p{font-size:1.25rem;line-height:1.65;color:var(--slate);}
+  .grad-text{background:var(--grad-warm);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .slide.cover,.slide.section{background:#0a2540;color:#fff;justify-content:center;}
+  .slide.cover::after,.slide.section::after{content:"";position:absolute;inset:0;z-index:0;
+    background:radial-gradient(60% 80% at 78% 18%,rgba(0,212,255,.32),transparent 60%),
+      radial-gradient(70% 90% at 12% 88%,rgba(168,85,247,.40),transparent 60%),
+      radial-gradient(50% 60% at 50% 50%,rgba(99,91,255,.30),transparent 70%);}
+  .slide.cover>*,.slide.section>*{position:relative;z-index:1;}
+  .slide.cover h1{font-size:3.5rem;font-weight:800;line-height:1.1;letter-spacing:-.03em;color:#fff;margin-bottom:1.4rem;}
+  .slide.cover .sub{font-size:1.5rem;color:#c5d2e0;font-weight:500;max-width:62ch;line-height:1.55;}
+  .slide.cover .chapter-tag{display:inline-block;font-size:1.1rem;font-weight:700;color:#fff;background:var(--grad);padding:.5rem 1.2rem;border-radius:999px;margin-bottom:1.8rem;}
+  .slide.cover .footer-note{position:absolute;bottom:6vh;left:6.5vw;color:#8aa0b8;font-size:1rem;z-index:1;}
+  .slide.section .sec-num{font-size:1.3rem;font-weight:700;color:var(--cyan);margin-bottom:1rem;letter-spacing:.05em;}
+  .slide.section h2{font-size:3.0rem;font-weight:800;color:#fff;line-height:1.12;letter-spacing:-.02em;}
+  .slide.section .sec-desc{font-size:1.4rem;color:#c5d2e0;margin-top:1.3rem;max-width:60ch;line-height:1.55;}
+  .grid{display:grid;gap:1.3rem;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:1.4rem 1.5rem;box-shadow:0 2px 10px rgba(10,37,64,.05);}
+  .card h3{font-size:1.35rem;font-weight:750;color:var(--navy);margin-bottom:.55rem;display:flex;align-items:center;gap:.6rem;}
+  .card p{font-size:1.1rem;line-height:1.5;color:var(--slate);}
+  .card .ico{font-size:1.5rem;}
+  .card.accent{border-top:4px solid transparent;border-image:var(--grad) 1;}
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:.9rem;}
+  ul.clean li{font-size:1.28rem;line-height:1.5;color:var(--slate);padding-left:2.1rem;position:relative;}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.5em;width:11px;height:11px;border-radius:3px;background:var(--grad);}
+  ul.clean li b{color:var(--navy);font-weight:750;}
+  .code{background:var(--code-bg);border-radius:14px;padding:1.1rem 1.35rem;font-family:"SF Mono","JetBrains Mono",Consolas,monospace;font-size:1.02rem;line-height:1.65;color:#e2e8f0;overflow:auto;box-shadow:0 8px 30px rgba(10,21,48,.35);}
+  .code .cm{color:#7c89a8;font-style:italic;}
+  .code .kw{color:#ff7eb3;}.code .fn{color:#00d4ff;}.code .st{color:#9be6a8;}.code .nm{color:#ffd479;}.code .out{color:#7c89a8;}
+  .code-label{font-size:.95rem;font-weight:700;color:var(--slate-2);margin-bottom:.45rem;display:flex;align-items:center;gap:.5rem;}
+  .code-label::before{content:"▸";color:var(--blurple);}
+  .analogy{background:linear-gradient(135deg,#f0f1ff,#fdf2f8);border:1px solid #e3e0ff;border-left:5px solid var(--blurple);border-radius:14px;padding:1.1rem 1.4rem;}
+  .analogy .tag{font-size:.95rem;font-weight:800;color:var(--blurple);margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem;}
+  .analogy p{font-size:1.18rem;color:var(--navy);line-height:1.55;}
+  .analogy p b{color:var(--blurple);}
+  .warn{background:linear-gradient(135deg,#fffbeb,#fff7ed);border:1px solid #fde68a;border-left:5px solid #f59e0b;border-radius:14px;padding:1.1rem 1.4rem;}
+  .warn .tag{font-size:.95rem;font-weight:800;color:#b45309;margin-bottom:.4rem;}
+  .warn p{font-size:1.18rem;color:var(--navy);line-height:1.55;}
+  .warn p b{color:#b45309;}
+  .quiz{background:#fff;border:2px dashed var(--blurple-2);border-radius:18px;padding:1.5rem 1.7rem;}
+  .quiz .q-tag{display:inline-flex;align-items:center;gap:.5rem;background:var(--grad);color:#fff;font-weight:700;font-size:1rem;padding:.35rem 1rem;border-radius:999px;margin-bottom:1rem;}
+  .quiz .q{font-size:1.4rem;font-weight:700;color:var(--navy);line-height:1.45;margin-bottom:1.1rem;}
+  .quiz .opts{display:flex;flex-direction:column;gap:.6rem;}
+  .quiz .opt{font-size:1.18rem;color:var(--slate);padding:.65rem 1.1rem;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;transition:.18s;}
+  .quiz .opt:hover{border-color:var(--blurple-2);background:#f7f7ff;}
+  .quiz .opt.reveal-correct{border-color:#22c55e;background:#f0fdf4;color:#15803d;font-weight:700;}
+  .quiz .answer{margin-top:1rem;font-size:1.12rem;color:var(--slate);display:none;}
+  .quiz .answer.show{display:block;animation:fade .3s;}
+  .quiz .answer b{color:#15803d;}
+  .reveal-btn{margin-top:.9rem;background:var(--blurple);color:#fff;border:none;font-size:1.05rem;font-weight:700;padding:.55rem 1.3rem;border-radius:10px;cursor:pointer;font-family:inherit;}
+  .reveal-btn:hover{background:#5249e0;}
+  .practice{background:linear-gradient(135deg,#0a2540,#1a1f4d);color:#fff;border-radius:16px;padding:1.3rem 1.6rem;}
+  .practice .p-tag{display:inline-flex;align-items:center;gap:.5rem;color:var(--cyan);font-weight:800;font-size:1.05rem;margin-bottom:.6rem;}
+  .practice p{color:#d4dff0;font-size:1.18rem;line-height:1.55;}
+  .practice code{background:rgba(0,212,255,.14);color:#7fe9ff;padding:.15em .5em;border-radius:6px;font-family:"SF Mono",monospace;font-size:.95em;}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .compare .col{padding:1.3rem 1.5rem;}
+  .compare .col.old{background:#fff;}
+  .compare .col.new{background:linear-gradient(135deg,#f0f1ff,#faf5ff);}
+  .compare .col h4{font-size:1.25rem;font-weight:800;margin-bottom:.8rem;}
+  .compare .col.old h4{color:var(--slate-2);}
+  .compare .col.new h4{color:var(--blurple);}
+  .compare .col p{font-size:1.12rem;line-height:1.45;margin-bottom:.55rem;}
+  .note{font-size:1.05rem;color:var(--slate-2);margin-top:.8rem;line-height:1.5;}
+  .note b{color:var(--navy);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.8rem;align-items:center;}
+  .stack{display:flex;flex-direction:column;gap:1rem;}
+  /* confusion matrix */
+  .cmatrix{display:grid;grid-template-columns:auto 1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:.5rem;max-width:560px;}
+  .cmatrix .lbl{display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--slate-2);font-size:1rem;padding:.3rem;}
+  .cmatrix .cell{border-radius:12px;padding:1rem;text-align:center;color:#fff;box-shadow:0 4px 12px rgba(10,37,64,.12);}
+  .cmatrix .cell .name{font-size:1.05rem;font-weight:800;}
+  .cmatrix .cell .desc{font-size:.85rem;opacity:.92;margin-top:.2rem;}
+  .cmatrix .cell .num{font-size:1.3rem;font-weight:800;margin-top:.3rem;}
+  .cell.tp{background:linear-gradient(135deg,#16a34a,#22c55e);}
+  .cell.tn{background:linear-gradient(135deg,#0ea5e9,#38bdf8);}
+  .cell.fp{background:linear-gradient(135deg,#f59e0b,#fbbf24);}
+  .cell.fn{background:linear-gradient(135deg,#ef4444,#f87171);}
+  .metricbox{display:flex;flex-direction:column;gap:.4rem;background:#fff;border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.3rem;box-shadow:0 2px 10px rgba(10,37,64,.05);}
+  .metricbox .formula{font-family:"SF Mono",monospace;font-size:1.15rem;color:var(--blurple);font-weight:700;}
+  #progress{position:fixed;top:0;left:0;height:4px;background:var(--grad);z-index:100;transition:width .35s ease;}
+  #hud{position:fixed;bottom:1.4vh;right:2vw;z-index:100;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem .9rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  #hud .counter{font-size:.95rem;font-weight:700;color:var(--slate);font-variant-numeric:tabular-nums;}
+  #hud button{border:none;background:transparent;cursor:pointer;font-size:1.3rem;color:var(--blurple);width:30px;height:30px;border-radius:50%;line-height:1;display:flex;align-items:center;justify-content:center;}
+  #hud button:hover{background:#eef0ff;}
+  #sectionlabel{position:fixed;bottom:1.4vh;left:2vw;z-index:100;font-size:.95rem;font-weight:700;color:var(--slate-2);background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem 1rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  .hint{position:fixed;bottom:1.4vh;left:50%;transform:translateX(-50%);z-index:100;font-size:.85rem;color:#8aa0b8;}
+  table.simple{border-collapse:collapse;width:100%;font-size:1.1rem;}
+  table.simple th,table.simple td{border:1px solid var(--line);padding:.6rem .8rem;text-align:center;}
+  table.simple th{background:#f0f1ff;color:var(--navy);font-weight:800;}
+  table.simple td{color:var(--slate);}
+  table.simple tr:nth-child(even) td{background:#fafbfd;}
+  table.simple .hi{color:var(--blurple);font-weight:800;}
+  @media (max-width:1100px){h2.slide-title{font-size:1.9rem;}.slide.cover h1{font-size:2.6rem;}.slide.section h2{font-size:2.3rem;}.lead{font-size:1.2rem;}.grid-3{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="deck">
+
+<!-- 1 COVER -->
+<section class="slide cover active">
+  <div class="chapter-tag">CHAPTER 03</div>
+  <h1>평가<br><span style="font-size:2.2rem;font-weight:700;color:#c5d2e0">Evaluation</span></h1>
+  <p class="sub">"정확도 95%!"... 그런데 이 모델이 정말 좋은 걸까요? 정확도가 <b style="color:#fff">거짓말</b>을 하는 순간을 폭로하고, 모델을 제대로 꿰뚫어 보는 평가 지표들을 배웁니다.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 강의자료</div>
+</section>
+
+<!-- 2 왜 평가 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>2장 복습 & 3장 목표</div>
+  <h2 class="slide-title">"좋은 모델"을 고르려면, 잘 재야 한다</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <div class="card"><h3>✅ 2장에서</h3><p>모델을 만들고 <b>정확도(accuracy)</b>로 평가했습니다. 타이타닉 86.6% 등.</p></div>
+        <div class="card accent"><h3>🎯 3장에서</h3><p>정확도 하나로는 부족합니다. <b>오차행렬·정밀도·재현율·F1·ROC-AUC</b>로 모델을 입체적으로 평가합니다.</p></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 건강검진</div>
+        <p>몸무게 하나로 건강을 판단할 순 없죠. 혈압·혈당·콜레스테롤을 <b>여러 각도로</b> 봐야 합니다. 모델 평가도 마찬가지 — <b>지표 하나에 속지 않는 법</b>을 배웁니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 목차 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>3장에서 배울 것</div>
+  <h2 class="slide-title">오늘의 지도</h2>
+  <div class="body-content">
+    <ul class="clean">
+      <li><b>정확도와 그 함정</b> — 정확도가 거짓말을 하는 순간 (불균형 데이터)</li>
+      <li><b>오차 행렬</b> — 예측 결과를 4칸으로 쪼개 보기</li>
+      <li><b>정밀도와 재현율</b> — 무엇을 더 중요하게 볼 것인가 (+트레이드오프)</li>
+      <li><b>F1 스코어</b> — 정밀도와 재현율의 균형점</li>
+      <li><b>ROC 곡선과 AUC</b> — 모델의 종합 분별력</li>
+      <li><b>피마 인디언 당뇨병 예측</b> — 재현율이 생명을 살리는 실습</li>
+    </ul>
+  </div>
+</section>
+
+<!-- SECTION 1 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 01</div>
+  <h2>정확도, 그리고 그 함정</h2>
+  <p class="sec-desc">가장 직관적인 지표지만, 가장 잘 속이는 지표이기도 합니다.</p>
+</section>
+
+<!-- 5 정확도란 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>정확도(Accuracy)</div>
+  <h2 class="slide-title">정확도 — 가장 직관적인 지표</h2>
+  <div class="body-content">
+    <div class="metricbox" style="max-width:680px;margin-bottom:1.4rem">
+      <div class="formula">정확도 = (맞게 예측한 개수) ÷ (전체 개수)</div>
+    </div>
+    <p class="lead">100문제 중 95개를 맞히면 정확도 95%. <b>쉽고 직관적</b>이라 가장 먼저 쓰는 지표입니다.</p>
+    <div class="warn" style="margin-top:1.4rem">
+      <div class="tag">⚠️ 하지만...</div>
+      <p>정확도는 <b>데이터가 한쪽으로 치우쳐 있을 때(불균형)</b> 우리를 완전히 속일 수 있습니다. 다음 슬라이드에서 그 충격적인 예를 봅니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 정확도의 함정 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>정확도의 함정 (꼭 기억!)</div>
+  <h2 class="slide-title">"아무것도 안 하고" 90% 정확도?!</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code"><span class="cm"># 손글씨 숫자 중 '7'을 찾는 문제</span>
+<span class="cm"># 전체 450개 중 7은 45개뿐 (10%)</span>
+
+<span class="kw">class</span> MyFakeClassifier:
+    <span class="kw">def</span> <span class="fn">predict</span>(self, X):
+        <span class="kw">return</span> np.<span class="fn">zeros</span>(len(X))  <span class="cm"># 무조건 "7 아님"</span>
+
+<span class="cm"># 결과 정확도: 0.900 (90%) 😱</span></div>
+      </div>
+      <div class="warn">
+        <div class="tag">⚠️ 왜 이런 일이?</div>
+        <p>데이터의 90%가 "7 아님"이라, <b>무조건 "아님"이라 찍어도</b> 90%를 맞힙니다. 모델은 <b>아무것도 학습하지 않았는데</b>도요!</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 희귀병 검사</div>
+      <p>1000명 중 환자가 5명뿐이라면, 의사가 <b>모두 "정상"</b>이라고만 해도 정확도는 99.5%. 하지만 정작 <b>환자 5명을 다 놓친</b> 최악의 의사죠. 그래서 다른 지표가 필요합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7 퀴즈 1 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>잠깐, 확인하고 갈게요</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="1">
+      <span class="q-tag">QUIZ 01</span>
+      <div class="q">신용카드 거래 100만 건 중 사기는 0.1%(1천 건)뿐입니다. 어떤 모델이 <b>"모두 정상"</b>이라 예측해 정확도 99.9%를 기록했습니다. 이 모델은?</div>
+      <div class="opts">
+        <div class="opt">① 정확도 99.9%니 아주 훌륭한 모델</div>
+        <div class="opt">② 사기를 하나도 못 잡는 쓸모없는 모델</div>
+        <div class="opt">③ 데이터가 부족해서 생긴 일시적 문제</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ②</b> — 정작 잡아야 할 '사기'를 하나도 못 잡았습니다. 불균형 데이터에서 정확도는 무의미할 수 있어요. 그래서 정밀도·재현율이 필요합니다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 02</div>
+  <h2>오차 행렬 (Confusion Matrix)</h2>
+  <p class="sec-desc">예측이 '어떻게' 맞고 틀렸는지, 네 칸으로 쪼개서 보면 진실이 드러납니다.</p>
+</section>
+
+<!-- 9 오차행렬 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>오차 행렬</div>
+  <h2 class="slide-title">예측 결과를 4칸으로 나누기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="cmatrix">
+        <div class="lbl"></div>
+        <div class="lbl">예측: 양성(1)</div>
+        <div class="lbl">예측: 음성(0)</div>
+        <div class="lbl" style="writing-mode:vertical-rl">실제 양성</div>
+        <div class="cell tp"><div class="name">TP</div><div class="desc">맞게 양성</div></div>
+        <div class="cell fn"><div class="name">FN</div><div class="desc">놓친 양성</div></div>
+        <div class="lbl" style="writing-mode:vertical-rl">실제 음성</div>
+        <div class="cell fp"><div class="name">FP</div><div class="desc">잘못 양성</div></div>
+        <div class="cell tn"><div class="name">TN</div><div class="desc">맞게 음성</div></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 화재 경보기</div>
+        <p><b>TP</b>: 불 났는데 울림 (정상)<br><b>FP</b>: 불 안 났는데 울림 (오작동)<br><b>FN</b>: 불 났는데 안 울림 (최악!)<br><b>TN</b>: 불 안 났고 안 울림 (정상)</p>
+        <p style="margin-top:.6rem">앞 글자 T/F = 맞췄나?, 뒤 글자 P/N = 뭐라고 예측했나?</p>
+      </div>
+    </div>
+    <p class="note">📌 모든 평가 지표(정밀도·재현율·F1)는 이 <b>4칸의 조합</b>으로 계산됩니다. 여기가 출발점이에요.</p>
+  </div>
+</section>
+
+<!-- 10 오차행렬로 본 진실 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>오차 행렬로 보는 진실</div>
+  <h2 class="slide-title">"90% 모델"의 정체</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code-label">앞의 FakeClassifier 오차 행렬</div>
+        <div class="code">confusion_matrix(y_test, fakepred)
+
+[[<span class="nm">405</span>   <span class="nm">0</span>]    <span class="cm"># TN=405, FP=0</span>
+ [ <span class="nm">45</span>   <span class="nm">0</span>]]   <span class="cm"># FN=45,  TP=0</span></div>
+      </div>
+      <div class="warn">
+        <div class="tag">⚠️ 충격적 사실</div>
+        <p><b>TP = 0</b>. 즉 정작 찾아야 할 '7'을 <b>단 한 개도</b> 못 맞혔습니다. 그런데도 정확도 90%! 오차 행렬을 보면 모델의 <b>민낯</b>이 드러납니다.</p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:1.2rem"><code style="font-family:monospace">from sklearn.metrics import confusion_matrix</code> 한 줄로 바로 확인할 수 있어요.</p>
+  </div>
+</section>
+
+<!-- SECTION 3 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 03</div>
+  <h2>정밀도와 재현율</h2>
+  <p class="sec-desc">"얼마나 정확히 찍었나" vs "얼마나 놓치지 않았나" — 상황에 따라 더 중요한 게 다릅니다.</p>
+</section>
+
+<!-- 12 정밀도 vs 재현율 정의 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>정밀도 · 재현율</div>
+  <h2 class="slide-title">두 가지 다른 질문</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col new">
+        <h4>정밀도 (Precision)</h4>
+        <p style="font-family:monospace;color:#635bff">TP ÷ (TP + FP)</p>
+        <p>"양성이라 <b>예측한 것 중</b> 진짜 양성 비율"</p>
+        <p>= 내가 찍은 게 <b>얼마나 정확한가</b></p>
+      </div>
+      <div class="col new">
+        <h4>재현율 (Recall)</h4>
+        <p style="font-family:monospace;color:#635bff">TP ÷ (TP + FN)</p>
+        <p>"<b>실제 양성 중</b> 내가 맞힌 비율"</p>
+        <p>= 진짜를 <b>얼마나 안 놓쳤나</b></p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 낚시</div>
+      <p><b>정밀도</b> = 잡은 물고기 중 '내가 노린 어종'의 비율 (헛손질 안 했나). <b>재현율</b> = 강에 있던 그 어종 중 내가 잡은 비율 (다 잡았나). 둘은 종종 <b>한쪽을 올리면 다른 쪽이 내려갑니다.</b></p>
+    </div>
+  </div>
+</section>
+
+<!-- 13 언제 뭐가 중요 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>무엇이 더 중요한가</div>
+  <h2 class="slide-title">상황이 지표를 결정한다</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card accent">
+        <h3>🏥 재현율이 중요</h3>
+        <p><b>암 진단, 금융 사기, 코로나 검사.</b> 진짜를 <b>놓치면(FN) 큰일</b>나는 경우. "조금 헛검사(FP)해도 좋으니 절대 놓치지 마라."</p>
+      </div>
+      <div class="card accent">
+        <h3>📧 정밀도가 중요</h3>
+        <p><b>스팸 메일 분류.</b> 정상 메일을 스팸으로 <b>잘못 분류(FP)하면</b> 중요 메일을 잃음. "확실할 때만 스팸이라 하자."</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.5rem">
+      <div class="tag">💡 핵심 통찰</div>
+      <p>"좋은 모델"의 기준은 <b>문제마다 다릅니다.</b> 생명이 걸린 문제는 재현율, 사용자 불편이 걸린 문제는 정밀도. <b>비즈니스 목적을 먼저 이해</b>하는 게 데이터 사이언티스트의 진짜 실력이에요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 14 코드 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>코드로 보기</div>
+  <h2 class="slide-title">한 번에 평가하는 함수 만들기</h2>
+  <div class="body-content">
+    <div class="code"><span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score, precision_score, recall_score, confusion_matrix
+
+<span class="kw">def</span> <span class="fn">get_clf_eval</span>(y_test, pred):
+    <span class="fn">print</span>(<span class="fn">confusion_matrix</span>(y_test, pred))       <span class="cm"># 오차 행렬</span>
+    <span class="fn">print</span>(<span class="fn">accuracy_score</span>(y_test, pred))         <span class="cm"># 정확도</span>
+    <span class="fn">print</span>(<span class="fn">precision_score</span>(y_test, pred))        <span class="cm"># 정밀도</span>
+    <span class="fn">print</span>(<span class="fn">recall_score</span>(y_test, pred))           <span class="cm"># 재현율</span>
+
+<span class="cm"># 타이타닉 결과 → 정확도 0.866, 정밀도 0.825, 재현율 0.770</span></div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 실무 팁</div>
+      <p>이렇게 <b>평가 지표를 묶은 함수</b>를 하나 만들어두면, 모델을 바꿀 때마다 한 줄로 종합 평가가 가능합니다. 실무·캐글에서 다들 이렇게 해요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 15 트레이드오프 + 임계값 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>정밀도/재현율 트레이드오프</div>
+  <h2 class="slide-title">임계값(Threshold)이라는 손잡이</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <p style="font-size:1.18rem">모델은 사실 <b>0/1이 아니라 '확률'</b>을 예측합니다. (예: 생존 확률 0.55) 보통 <b>0.5 이상이면 1</b>로 판정하죠. 이 기준선이 <b>임계값</b>입니다.</p>
+        <div class="code"><span class="cm"># 확률 보기</span>
+lr_clf.<span class="fn">predict_proba</span>(X_test)
+<span class="cm"># [[0.449, 0.551], ...]  ← [0일확률, 1일확률]</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 합격 커트라인</div>
+        <p>임계값을 <b>낮추면</b>(0.4) → 더 많이 "양성"이라 함 → <b>재현율↑ 정밀도↓</b>. <b>높이면</b>(0.6) → 확실할 때만 양성 → <b>정밀도↑ 재현율↓</b>. 시소처럼 움직입니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 16 임계값 결과표 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>임계값 조정 실험</div>
+  <h2 class="slide-title">손잡이를 돌려보면 (타이타닉)</h2>
+  <div class="body-content">
+    <table class="simple">
+      <tr><th>임계값</th><th>정확도</th><th>정밀도</th><th>재현율</th></tr>
+      <tr><td>0.40</td><td>0.821</td><td>0.704</td><td class="hi">0.820 ↑</td></tr>
+      <tr><td>0.45</td><td>0.855</td><td>0.787</td><td>0.787</td></tr>
+      <tr><td>0.50 (기본)</td><td>0.866</td><td>0.825</td><td>0.770</td></tr>
+      <tr><td>0.55</td><td>0.872</td><td>0.865</td><td>0.738</td></tr>
+      <tr><td>0.60</td><td>0.877</td><td class="hi">0.898 ↑</td><td>0.721 ↓</td></tr>
+    </table>
+    <div class="analogy" style="margin-top:1.2rem">
+      <div class="tag">💡 읽는 법</div>
+      <p>임계값을 <b>0.4→0.6으로 올릴수록</b> 정밀도는 오르고(0.70→0.90) 재현율은 내려갑니다(0.82→0.72). <b>완벽한 정답은 없고</b>, 문제 목적에 맞춰 손잡이를 조절합니다. (Binarizer로 구현)</p>
+    </div>
+  </div>
+</section>
+
+<!-- 17 맹점 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>정밀도와 재현율의 맹점</div>
+  <h2 class="slide-title">한쪽만 100%? 그건 속임수다</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="warn">
+        <div class="tag">🎭 재현율 100% 만들기</div>
+        <p><b>전부 다 "양성"</b>이라 찍으면 진짜 양성을 하나도 안 놓치니 재현율 100%! 하지만 정밀도는 바닥.</p>
+      </div>
+      <div class="warn">
+        <div class="tag">🎭 정밀도 100% 만들기</div>
+        <p><b>가장 확실한 1개만</b> "양성"이라 찍으면 그것만 맞아 정밀도 100%! 하지만 나머지를 다 놓쳐 재현율은 바닥.</p>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:1.5rem">그래서 <b class="grad-text" style="font-weight:800">둘을 함께 봐야</b> 합니다. 이 둘을 하나로 합친 지표가 바로 다음에 배울 <b>F1 스코어</b>.</p>
+  </div>
+</section>
+
+<!-- 18 퀴즈 2 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>정밀도/재현율 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="1">
+      <span class="q-tag">QUIZ 02</span>
+      <div class="q"><b>암 진단</b> 모델을 만든다면, 다음 중 무엇을 가장 우선해야 할까요?</div>
+      <div class="opts">
+        <div class="opt">① 정밀도 — 헛진단을 최소화</div>
+        <div class="opt">② 재현율 — 실제 환자를 놓치지 않기</div>
+        <div class="opt">③ 정확도만 높으면 충분</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ②  재현율</b> — 암 환자를 놓치면(FN) 생명이 위험합니다. 헛진단(FP)으로 추가 검사하는 비용보다 훨씬 치명적이죠. 그래서 재현율을 우선합니다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 04</div>
+  <h2>F1 스코어</h2>
+  <p class="sec-desc">정밀도와 재현율, 둘 다 챙기고 싶을 때의 균형 지표.</p>
+</section>
+
+<!-- 20 F1 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>F1 스코어</div>
+  <h2 class="slide-title">F1 — 정밀도와 재현율의 균형점</h2>
+  <div class="body-content">
+    <div class="metricbox" style="max-width:760px;margin-bottom:1.3rem">
+      <div class="formula">F1 = 2 × (정밀도 × 재현율) ÷ (정밀도 + 재현율)</div>
+      <p class="note" style="margin:0">= 두 값의 '조화 평균' (한쪽이 낮으면 F1도 크게 떨어짐)</p>
+    </div>
+    <div class="two-col">
+      <div class="analogy">
+        <div class="tag">💡 비유 · 균형 잡힌 식단</div>
+        <p>그냥 평균이 아니라 <b>조화 평균</b>이라, 정밀도·재현율 중 <b>한쪽만 높으면 F1이 낮게</b> 나옵니다. "둘 다 골고루 좋아야" 높은 점수를 주는, 깐깐한 지표예요.</p>
+      </div>
+      <div>
+        <div class="code"><span class="kw">from</span> sklearn.metrics <span class="kw">import</span> f1_score
+f1 = <span class="fn">f1_score</span>(y_test, pred)
+<span class="cm"># 타이타닉: F1 = 0.7966</span></div>
+      </div>
+    </div>
+    <p class="note">🔑 정밀도/재현율의 우선순위가 딱히 없을 때, 또는 <b>균형 잡힌 성능</b>을 한 숫자로 보고 싶을 때 F1을 씁니다.</p>
+  </div>
+</section>
+
+<!-- SECTION 5 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 05</div>
+  <h2>ROC 곡선과 AUC</h2>
+  <p class="sec-desc">임계값을 전부 다 시도해보면, 모델의 '진짜 분별력'이 한 장의 그림으로 보입니다.</p>
+</section>
+
+<!-- 22 ROC -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>ROC 곡선</div>
+  <h2 class="slide-title">ROC 곡선 — 임계값 전체를 한눈에</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>가로축 <b>FPR</b>: 음성을 양성이라 잘못 본 비율</li>
+          <li>세로축 <b>TPR</b>(재현율): 양성을 맞게 본 비율</li>
+          <li>임계값을 0~1로 바꿔가며 그린 <b>궤적</b></li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 곡선이 왼쪽 위로 붙을수록 좋다</div>
+        <p>좋은 모델일수록 곡선이 <b>왼쪽 위 모서리</b>로 바짝 붙습니다 (헛손질은 적게, 잘 맞히기). 대각선 점선은 <b>'찍기(랜덤)'</b> 수준 — 그보다 위에 있어야 의미 있는 모델이에요.</p>
+      </div>
+    </div>
+    <p class="note"><code style="font-family:monospace">from sklearn.metrics import roc_curve</code> — FPR, TPR을 반환해 그래프로 그립니다.</p>
+  </div>
+</section>
+
+<!-- 23 AUC -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>AUC</div>
+  <h2 class="slide-title">AUC — 곡선 아래 면적, 한 숫자로</h2>
+  <div class="body-content">
+    <div class="grid grid-3">
+      <div class="card"><h3>1.0</h3><p>완벽한 모델 (이상적)</p></div>
+      <div class="card accent"><h3>0.9 내외</h3><p>아주 우수 (타이타닉 0.8987)</p></div>
+      <div class="card"><h3>0.5</h3><p>찍기(랜덤)와 동일 — 쓸모없음</p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.5rem">
+      <div class="tag">💡 비유 · 모델의 '시력 점수'</div>
+      <p>AUC는 ROC 곡선 <b>아래 면적</b>으로, 모델이 양성과 음성을 <b>얼마나 잘 구분하는지</b>를 0.5~1.0 한 숫자로 요약합니다. <b>1에 가까울수록</b> 분별력이 좋다는 뜻. 불균형 데이터에서도 잘 작동해 많이 씁니다.</p>
+    </div>
+    <p class="note"><code style="font-family:monospace">roc_auc_score(y_test, pred_proba)</code> → 0.8987</p>
+  </div>
+</section>
+
+<!-- 24 퀴즈 3 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>ROC-AUC 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="2">
+      <span class="q-tag">QUIZ 03</span>
+      <div class="q">어떤 모델의 <b>AUC = 0.5</b>가 나왔습니다. 이것의 의미는?</div>
+      <div class="opts">
+        <div class="opt">① 정확도가 50%라는 뜻</div>
+        <div class="opt">② 절반은 맞고 절반은 틀린 평범한 모델</div>
+        <div class="opt">③ 동전 던지기(랜덤)와 다를 바 없는, 분별력 없는 모델</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ③</b> — AUC 0.5는 양성/음성을 전혀 구분하지 못하는, 찍기와 같은 수준입니다. 0.5보다 충분히 높아야 의미 있는 모델이에요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 06</div>
+  <h2>실습 — 피마 인디언 당뇨병 예측</h2>
+  <p class="sec-desc">재현율이 곧 '놓친 환자 수'가 되는, 의미 있는 실전 문제로 모든 지표를 적용합니다.</p>
+</section>
+
+<!-- 26 피마 소개 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>문제 소개</div>
+  <h2 class="slide-title">"이 사람은 당뇨일까?"</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>임신 횟수, 혈당, 혈압, BMI 등 <b>의료 데이터</b>로 당뇨 여부(0/1) 예측</li>
+          <li>로지스틱 회귀로 학습 → 5개 지표로 평가</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 왜 재현율?</div>
+        <p>당뇨 환자를 <b>놓치면(FN)</b> 치료 시기를 놓칩니다. 그래서 이 문제는 <b>재현율</b>을 특히 신경 써야 해요. 정확도만 봐선 안 됩니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 27 데이터 정제 0값 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>데이터 정제 (실무 인사이트!)</div>
+  <h2 class="slide-title">"0"이 사실은 빈 값이었다</h2>
+  <div class="body-content">
+    <div class="code"><span class="cm"># 혈당·혈압·BMI가 0?  사람이 그럴 리 없다 → 사실은 결측치!</span>
+zero_features = [<span class="st">'Glucose'</span>,<span class="st">'BloodPressure'</span>,<span class="st">'SkinThickness'</span>,<span class="st">'Insulin'</span>,<span class="st">'BMI'</span>]
+
+<span class="cm"># 0을 평균값으로 대체</span>
+diabetes_data[zero_features] = diabetes_data[zero_features].<span class="fn">replace</span>(<span class="nm">0</span>, mean_values)</div>
+    <div class="warn" style="margin-top:1.3rem">
+      <div class="tag">⚠️ 데이터를 의심하라</div>
+      <p>혈압이 0인 사람은 없습니다. 이런 <b>'말도 안 되는 0'은 결측치가 0으로 기록된 것</b>이에요. 이걸 못 보고 그냥 쓰면 모델이 망가집니다. <b>데이터를 비판적으로 들여다보는 눈</b>이 실력입니다.</p>
+    </div>
+    <p class="note">🔑 <code style="font-family:monospace">describe()</code>, 히스토그램으로 분포를 꼭 확인하세요. 이게 진짜 데이터 사이언티스트의 습관!</p>
+  </div>
+</section>
+
+<!-- 28 스케일링 + 임계값 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>성능 개선</div>
+  <h2 class="slide-title">스케일링 + 임계값 조정으로 재현율 살리기</h2>
+  <div class="body-content">
+    <div class="code"><span class="cm"># ① 스케일링으로 피처 크기 통일</span>
+X_scaled = StandardScaler().<span class="fn">fit_transform</span>(X)
+
+<span class="cm"># ② 임계값을 0.5 → 0.48로 낮춰 재현율 개선</span>
+binarizer = <span class="fn">Binarizer</span>(threshold=<span class="nm">0.48</span>)
+pred = binarizer.<span class="fn">fit_transform</span>(pred_proba_1)
+<span class="cm"># → 재현율이 올라가 당뇨 환자를 덜 놓치게 됨</span></div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 배운 것 총동원</div>
+      <p>2장의 <b>스케일링</b> + 3장의 <b>임계값 조정</b>을 합쳐 성능을 끌어올립니다. "환자를 놓치지 않기"라는 <b>목적에 맞게</b> 임계값을 의도적으로 낮춘 거예요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 29 종합 평가함수 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>종합 평가</div>
+  <h2 class="slide-title">5개 지표를 한 번에</h2>
+  <div class="body-content">
+    <div class="code"><span class="kw">def</span> <span class="fn">get_clf_eval</span>(y_test, pred, pred_proba):
+    <span class="fn">print</span>(<span class="fn">confusion_matrix</span>(y_test, pred))
+    <span class="fn">print</span>(<span class="fn">accuracy_score</span>(...), <span class="fn">precision_score</span>(...),
+          <span class="fn">recall_score</span>(...), <span class="fn">f1_score</span>(...),
+          <span class="fn">roc_auc_score</span>(y_test, pred_proba))
+<span class="cm"># 오차행렬 + 정확도 + 정밀도 + 재현율 + F1 + AUC 를 한 방에!</span></div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 이 함수는 평생 씁니다</div>
+      <p>분류 문제를 풀 때마다 이 <b>get_clf_eval 같은 종합 평가 함수</b>를 만들어두면 편합니다. 4장 이후의 모든 분류 실습에서 계속 등장해요. 팀 프로젝트에서도 그대로 활용 가능!</p>
+    </div>
+  </div>
+</section>
+
+<!-- 정리 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>3장 핵심 정리</div>
+  <h2 class="slide-title">오늘의 한 페이지 요약</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card accent"><h3><span class="ico">🎯</span>정확도의 함정</h3><p>불균형 데이터에선 "다 0으로 찍어도" 90%. 정확도만 믿지 말 것.</p></div>
+      <div class="card accent"><h3><span class="ico">🔲</span>오차 행렬</h3><p>TP·FP·FN·TN 4칸. 모든 지표의 출발점.</p></div>
+      <div class="card accent"><h3><span class="ico">⚖️</span>정밀도 vs 재현율</h3><p>"정확히 찍기" vs "안 놓치기". 문제 목적이 우선순위를 결정. F1은 둘의 균형.</p></div>
+      <div class="card accent"><h3><span class="ico">📈</span>ROC-AUC</h3><p>임계값 전체에 걸친 분별력. 1에 가까울수록 우수, 0.5는 랜덤.</p></div>
+    </div>
+    <p class="note" style="margin-top:1.3rem">✅ 이제 "정확도 95%!"라는 말에 <b>"어떤 데이터로? 재현율은?"</b>이라고 되물을 수 있다면, 3장은 성공입니다. 이게 전문가의 시선이에요.</p>
+  </div>
+</section>
+
+<!-- 마무리 -->
+<section class="slide cover">
+  <div class="chapter-tag">NEXT · CHAPTER 04</div>
+  <h1>이제 본격적인<br>알고리즘의 세계로 🌲</h1>
+  <p class="sub">다음 장은 <b style="color:#fff">분류(Classification)</b>입니다. 결정 트리부터 랜덤 포레스트, XGBoost, LightGBM까지 — 캐글 우승자들이 쓰는 강력한 무기들을 하나씩 손에 넣습니다.</p>
+  <p class="sub" style="margin-top:1.4rem;font-size:1.25rem;color:#9fb3c8">💪 숙제: 타이타닉 모델의 임계값을 0.4, 0.6으로 바꿔가며 정밀도·재현율이 어떻게 변하는지 직접 확인해 보기.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 3장 끝 · 수고했습니다!</div>
+</section>
+
+</div>
+
+<div id="sectionlabel">3장 · 평가 (Evaluation)</div>
+<div class="hint">← → 또는 스페이스로 이동 · F 전체화면</div>
+<div id="hud">
+  <button onclick="go(-1)" aria-label="이전">‹</button>
+  <span class="counter"><span id="cur">1</span> / <span id="total">1</span></span>
+  <button onclick="go(1)" aria-label="다음">›</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+  function render(){
+    slides.forEach((s,i)=>s.classList.toggle('active', i===idx));
+    document.getElementById('cur').textContent = idx+1;
+    document.getElementById('progress').style.width = ((idx+1)/slides.length*100)+'%';
+  }
+  function go(d){const n=idx+d;if(n>=0&&n<slides.length){idx=n;render();}}
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(-1);}
+    else if(e.key==='Home'){idx=0;render();}
+    else if(e.key==='End'){idx=slides.length-1;render();}
+    else if(e.key.toLowerCase()==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+  });
+  document.getElementById('deck').addEventListener('click', e=>{
+    if(e.target.closest('.opt,.reveal-btn,button,a'))return;
+    const x=e.clientX/window.innerWidth;go(x<0.25?-1:1);
+  });
+  function revealQuiz(btn){
+    const quiz=btn.closest('.quiz');
+    const ansIdx=parseInt(quiz.dataset.answer,10);
+    const opts=quiz.querySelectorAll('.opt');
+    if(opts[ansIdx])opts[ansIdx].classList.add('reveal-correct');
+    quiz.querySelector('.answer').classList.add('show');
+    btn.style.display='none';
+  }
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1장 · 파이썬 기반의 머신러닝과 생태계 이해</title>
+<style>
+  :root{
+    --blurple:#635bff;
+    --blurple-2:#7a73ff;
+    --cyan:#00d4ff;
+    --pink:#ff7eb3;
+    --navy:#0a2540;
+    --slate:#425466;
+    --slate-2:#697386;
+    --bg:#f6f9fc;
+    --card:#ffffff;
+    --line:#e6ebf1;
+    --code-bg:#0a1530;
+    --grad:linear-gradient(118deg,#635bff 0%,#7a73ff 38%,#00d4ff 100%);
+    --grad-warm:linear-gradient(118deg,#635bff 0%,#a855f7 50%,#ff7eb3 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#0a2540;
+    color:var(--navy);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* ---------- deck / slide framework ---------- */
+  #deck{position:fixed;inset:0;}
+  .slide{
+    position:absolute;inset:0;
+    display:none;
+    flex-direction:column;
+    padding:5.2vh 6.5vw 6vh;
+    background:var(--bg);
+    overflow:hidden;
+  }
+  .slide.active{display:flex;animation:fade .45s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+
+  /* gradient accent on standard slides */
+  .slide::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--grad);
+  }
+  .slide.dark::before{display:none;}
+
+  /* ---------- typography ---------- */
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:1.05rem;font-weight:700;letter-spacing:.02em;
+    color:var(--blurple);text-transform:none;margin-bottom:1.1rem;
+  }
+  .kicker .dot{width:9px;height:9px;border-radius:50%;background:var(--grad);}
+  h1.slide-title{font-size:2.7rem;line-height:1.15;font-weight:800;letter-spacing:-.02em;color:var(--navy);margin-bottom:1.4rem;}
+  h2.slide-title{font-size:2.25rem;line-height:1.18;font-weight:800;letter-spacing:-.02em;color:var(--navy);margin-bottom:1.5rem;}
+  .lead{font-size:1.45rem;line-height:1.6;color:var(--slate);max-width:62ch;}
+  .body-content{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;}
+  p{font-size:1.25rem;line-height:1.65;color:var(--slate);}
+
+  .grad-text{background:var(--grad-warm);-webkit-background-clip:text;background-clip:text;color:transparent;}
+
+  /* ---------- title / section slides ---------- */
+  .slide.cover,.slide.section{
+    background:#0a2540;color:#fff;justify-content:center;
+  }
+  .slide.cover::after,.slide.section::after{
+    content:"";position:absolute;inset:0;z-index:0;
+    background:
+      radial-gradient(60% 80% at 78% 18%,rgba(0,212,255,.32),transparent 60%),
+      radial-gradient(70% 90% at 12% 88%,rgba(168,85,247,.40),transparent 60%),
+      radial-gradient(50% 60% at 50% 50%,rgba(99,91,255,.30),transparent 70%);
+  }
+  .slide.cover>*,.slide.section>*{position:relative;z-index:1;}
+  .slide.cover h1{font-size:3.6rem;font-weight:800;line-height:1.1;letter-spacing:-.03em;color:#fff;margin-bottom:1.4rem;}
+  .slide.cover .sub{font-size:1.5rem;color:#c5d2e0;font-weight:500;max-width:60ch;line-height:1.55;}
+  .slide.cover .chapter-tag{
+    display:inline-block;font-size:1.1rem;font-weight:700;color:#fff;
+    background:var(--grad);padding:.5rem 1.2rem;border-radius:999px;margin-bottom:1.8rem;
+  }
+  .slide.cover .footer-note{position:absolute;bottom:6vh;left:6.5vw;color:#8aa0b8;font-size:1rem;z-index:1;}
+
+  .slide.section .sec-num{font-size:1.3rem;font-weight:700;color:var(--cyan);margin-bottom:1rem;letter-spacing:.05em;}
+  .slide.section h2{font-size:3.1rem;font-weight:800;color:#fff;line-height:1.12;letter-spacing:-.02em;}
+  .slide.section .sec-desc{font-size:1.4rem;color:#c5d2e0;margin-top:1.3rem;max-width:58ch;line-height:1.55;}
+
+  /* ---------- cards / grids ---------- */
+  .grid{display:grid;gap:1.3rem;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:1.5rem 1.6rem;box-shadow:0 2px 10px rgba(10,37,64,.05);
+  }
+  .card h3{font-size:1.4rem;font-weight:750;color:var(--navy);margin-bottom:.6rem;display:flex;align-items:center;gap:.6rem;}
+  .card p{font-size:1.13rem;line-height:1.55;color:var(--slate);}
+  .card .ico{font-size:1.6rem;}
+  .card.accent{border-top:4px solid transparent;border-image:var(--grad) 1;}
+
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:1rem;}
+  ul.clean li{font-size:1.3rem;line-height:1.5;color:var(--slate);padding-left:2.1rem;position:relative;}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.55em;width:11px;height:11px;border-radius:3px;background:var(--grad);}
+  ul.clean li b{color:var(--navy);font-weight:750;}
+
+  /* ---------- code blocks ---------- */
+  .code{
+    background:var(--code-bg);border-radius:14px;padding:1.2rem 1.4rem;
+    font-family:"SF Mono","JetBrains Mono","Fira Code",Consolas,monospace;
+    font-size:1.04rem;line-height:1.7;color:#e2e8f0;overflow:auto;
+    box-shadow:0 8px 30px rgba(10,21,48,.35);
+  }
+  .code .cm{color:#7c89a8;font-style:italic;}
+  .code .kw{color:#ff7eb3;}
+  .code .fn{color:#00d4ff;}
+  .code .st{color:#9be6a8;}
+  .code .nm{color:#ffd479;}
+  .code .out{color:#7c89a8;}
+  .code-label{font-size:.95rem;font-weight:700;color:var(--slate-2);margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem;}
+  .code-label::before{content:"▸";color:var(--blurple);}
+
+  /* analogy box */
+  .analogy{
+    background:linear-gradient(135deg,#f0f1ff,#fdf2f8);
+    border:1px solid #e3e0ff;border-left:5px solid var(--blurple);
+    border-radius:14px;padding:1.2rem 1.5rem;
+  }
+  .analogy .tag{font-size:.95rem;font-weight:800;color:var(--blurple);letter-spacing:.04em;margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem;}
+  .analogy p{font-size:1.2rem;color:var(--navy);line-height:1.55;}
+  .analogy p b{color:var(--blurple);}
+
+  /* quiz box */
+  .quiz{
+    background:#fff;border:2px dashed var(--blurple-2);border-radius:18px;padding:1.6rem 1.8rem;
+  }
+  .quiz .q-tag{display:inline-flex;align-items:center;gap:.5rem;background:var(--grad);color:#fff;font-weight:700;font-size:1rem;padding:.35rem 1rem;border-radius:999px;margin-bottom:1rem;}
+  .quiz .q{font-size:1.45rem;font-weight:700;color:var(--navy);line-height:1.45;margin-bottom:1.1rem;}
+  .quiz .opts{display:flex;flex-direction:column;gap:.7rem;}
+  .quiz .opt{font-size:1.2rem;color:var(--slate);padding:.7rem 1.1rem;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;transition:.18s;}
+  .quiz .opt:hover{border-color:var(--blurple-2);background:#f7f7ff;}
+  .quiz .opt.reveal-correct{border-color:#22c55e;background:#f0fdf4;color:#15803d;font-weight:700;}
+  .quiz .answer{margin-top:1.1rem;font-size:1.15rem;color:var(--slate);display:none;}
+  .quiz .answer.show{display:block;animation:fade .3s;}
+  .quiz .answer b{color:#15803d;}
+  .reveal-btn{margin-top:1rem;background:var(--blurple);color:#fff;border:none;font-size:1.05rem;font-weight:700;padding:.6rem 1.3rem;border-radius:10px;cursor:pointer;font-family:inherit;}
+  .reveal-btn:hover{background:#5249e0;}
+
+  /* practice box */
+  .practice{
+    background:#0a2540;color:#fff;border-radius:16px;padding:1.4rem 1.7rem;
+    background:linear-gradient(135deg,#0a2540,#1a1f4d);
+  }
+  .practice .p-tag{display:inline-flex;align-items:center;gap:.5rem;color:var(--cyan);font-weight:800;font-size:1.05rem;margin-bottom:.7rem;}
+  .practice p{color:#d4dff0;font-size:1.2rem;line-height:1.55;}
+  .practice code{background:rgba(0,212,255,.14);color:#7fe9ff;padding:.15em .5em;border-radius:6px;font-family:"SF Mono",monospace;font-size:.95em;}
+
+  /* compare table */
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .compare .col{padding:1.4rem 1.6rem;}
+  .compare .col.old{background:#fff;}
+  .compare .col.new{background:linear-gradient(135deg,#f0f1ff,#faf5ff);}
+  .compare .col h4{font-size:1.25rem;font-weight:800;margin-bottom:.9rem;}
+  .compare .col.old h4{color:var(--slate-2);}
+  .compare .col.new h4{color:var(--blurple);}
+  .compare .col p{font-size:1.12rem;line-height:1.5;margin-bottom:.6rem;}
+  .compare .arrow{font-size:1.3rem;}
+
+  .pill-row{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:.4rem;}
+  .pill{background:#fff;border:1px solid var(--line);border-radius:999px;padding:.5rem 1.1rem;font-size:1.1rem;font-weight:650;color:var(--navy);box-shadow:0 1px 4px rgba(10,37,64,.05);}
+  .pill .em{color:var(--blurple);}
+
+  .note{font-size:1.05rem;color:var(--slate-2);margin-top:.9rem;line-height:1.5;}
+  .note b{color:var(--navy);}
+
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center;}
+  .stack{display:flex;flex-direction:column;gap:1.1rem;}
+
+  /* ---------- progress / nav ---------- */
+  #progress{position:fixed;top:0;left:0;height:4px;background:var(--grad);z-index:100;transition:width .35s ease;}
+  #hud{position:fixed;bottom:1.4vh;right:2vw;z-index:100;display:flex;align-items:center;gap:14px;
+       background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);
+       border-radius:999px;padding:.4rem .9rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  #hud .counter{font-size:.95rem;font-weight:700;color:var(--slate);font-variant-numeric:tabular-nums;}
+  #hud button{border:none;background:transparent;cursor:pointer;font-size:1.3rem;color:var(--blurple);width:30px;height:30px;border-radius:50%;line-height:1;display:flex;align-items:center;justify-content:center;}
+  #hud button:hover{background:#eef0ff;}
+  .slide.dark ~ #hud{}
+  /* on dark slides keep hud readable - hud is fixed outside, fine */
+
+  #sectionlabel{position:fixed;bottom:1.4vh;left:2vw;z-index:100;font-size:.95rem;font-weight:700;color:var(--slate-2);
+                background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);
+                border-radius:999px;padding:.4rem 1rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+
+  .hint{position:fixed;bottom:1.4vh;left:50%;transform:translateX(-50%);z-index:100;font-size:.85rem;color:#8aa0b8;}
+
+  /* responsive scaling for projector / small screens */
+  @media (max-width:1100px){
+    h1.slide-title,h2.slide-title{font-size:2.1rem;}
+    .slide.cover h1{font-size:2.8rem;}
+    .slide.section h2{font-size:2.4rem;}
+    .lead{font-size:1.25rem;}
+    .grid-3{grid-template-columns:1fr;}
+  }
+  .filllabel{}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="deck">
+
+<!-- ============ 1. COVER ============ -->
+<section class="slide cover active">
+  <div class="chapter-tag">CHAPTER 01</div>
+  <h1>파이썬 기반의 머신러닝과<br>생태계 이해</h1>
+  <p class="sub">머신러닝이 무엇인지, 왜 파이썬인지, 그리고 데이터를 다루는 두 가지 핵심 무기 — <b style="color:#fff">넘파이</b>와 <b style="color:#fff">판다스</b>를 손에 익히는 시간.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 강의자료 1/10</div>
+</section>
+
+<!-- ============ 2. 강의 목표 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>이 수업이 향하는 곳</div>
+  <h2 class="slide-title">우리는 어디까지 갈까요?</h2>
+  <div class="body-content">
+    <div class="grid grid-3">
+      <div class="card accent">
+        <h3><span class="ico">🌱</span>시작</h3>
+        <p>코딩이 처음이거나 머신러닝을 한 번도 안 본 <b>완전 초심자</b>도 OK. 여기서 출발합니다.</p>
+      </div>
+      <div class="card accent">
+        <h3><span class="ico">🛠️</span>중간</h3>
+        <p>데이터를 직접 다루고, 모델을 만들고, <b>팀 프로젝트</b>를 끝까지 완성할 수 있는 실력.</p>
+      </div>
+      <div class="card accent">
+        <h3><span class="ico">🚀</span>목표</h3>
+        <p>AI·데이터 분야 <b>취업</b>. 면접에서 "이거 해봤어요"라고 말할 수 있는 경험치.</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.8rem">
+      <div class="tag">💡 비유</div>
+      <p>머신러닝 공부는 <b>수영 배우기</b>와 같습니다. 물의 원리(이론)도 알아야 하지만, 결국 물에 들어가 손발을 움직여(코드 실습) 봐야 늘어요. 이 수업은 <b>물에 자주 들어가는</b> 수업입니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. 오늘의 목차 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>1장에서 배울 것</div>
+  <h2 class="slide-title">오늘의 지도</h2>
+  <div class="body-content">
+    <ul class="clean">
+      <li><b>01 · 머신러닝의 개념</b> — 머신러닝이 도대체 뭔지, 어떤 종류가 있는지, 왜 데이터가 중요한지</li>
+      <li><b>02 · 파이썬 ML 생태계</b> — 우리가 쓸 도구(패키지)들과 설치 방법</li>
+      <li><b>03 · 넘파이(NumPy)</b> — 숫자·행렬 계산의 엔진. 모든 ML 라이브러리의 토대</li>
+      <li><b>04 · 판다스(Pandas)</b> — 표(엑셀) 형태 데이터를 자유자재로 다루는 도구</li>
+      <li><b>05 · 정리</b> — 오늘 손에 넣은 무기 점검</li>
+    </ul>
+    <p class="note">⏱️ 1장은 <b>이론보다 감 잡기</b>가 목적입니다. 외우지 말고, "아 이런 게 있구나"를 느끼면 충분해요.</p>
+  </div>
+</section>
+
+<!-- ============ SECTION 1 ============ -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 01</div>
+  <h2>머신러닝의 개념</h2>
+  <p class="sec-desc">기계가 "학습"한다는 게 무슨 뜻일까? 가장 기본적인 직관부터 잡아봅니다.</p>
+</section>
+
+<!-- ============ 5. 머신러닝이란 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>머신러닝의 개념</div>
+  <h2 class="slide-title">머신러닝이란 무엇인가?</h2>
+  <div class="body-content">
+    <p class="lead" style="margin-bottom:1.6rem">한 줄로: <b class="grad-text" style="font-weight:800">데이터에서 규칙을 스스로 찾아내는 것</b></p>
+    <div class="analogy">
+      <div class="tag">💡 비유 · 아이에게 고양이 가르치기</div>
+      <p>아이에게 "고양이는 귀가 뾰족하고 수염이 있고…"라고 <b>규칙을 말로 설명</b>하기는 어렵죠. 대신 고양이 사진을 <b>수백 장 보여주면</b> 어느새 처음 보는 고양이도 알아맞힙니다. 머신러닝도 똑같아요. 규칙을 우리가 짜주는 게 아니라, <b>예시(데이터)를 잔뜩 주면 컴퓨터가 규칙을 스스로 익힙니다.</b></p>
+    </div>
+    <p class="note">📌 핵심 단어 두 개만 기억하세요: <b>데이터</b>(예시) → <b>모델</b>(찾아낸 규칙).</p>
+  </div>
+</section>
+
+<!-- ============ 6. 전통 프로그래밍 vs ML ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>머신러닝의 개념</div>
+  <h2 class="slide-title">전통적 프로그래밍과 무엇이 다른가</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col old">
+        <h4>전통적 프로그래밍</h4>
+        <p>사람이 <b>규칙</b>을 직접 코드로 작성</p>
+        <p>규칙 + 데이터 → <b>정답</b></p>
+        <p class="note" style="margin-top:1rem">예: "이메일에 '무료', '당첨'이 있으면 스팸" 같은 규칙을 사람이 일일이 입력</p>
+      </div>
+      <div class="col new">
+        <h4>머신러닝</h4>
+        <p>기계가 <b>규칙</b>을 스스로 발견</p>
+        <p>데이터 + 정답 → <b>규칙(모델)</b></p>
+        <p class="note" style="margin-top:1rem">예: 스팸/정상 메일 수만 건을 주면, 기계가 "어떤 단어 조합이 스팸인지"를 직접 학습</p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:1.4rem">🔑 그래서 머신러닝은 <b>규칙이 너무 복잡하거나 사람이 말로 설명하기 어려운 문제</b>(이미지 인식, 추천, 번역)에 강력합니다.</p>
+  </div>
+</section>
+
+<!-- ============ 7. 머신러닝의 분류 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>머신러닝의 분류</div>
+  <h2 class="slide-title">머신러닝의 3가지 큰 갈래</h2>
+  <div class="body-content">
+    <div class="grid grid-3">
+      <div class="card">
+        <h3><span class="ico">🎯</span>지도학습</h3>
+        <p><b>정답이 있는</b> 데이터로 학습. "이건 개, 이건 고양이"처럼 라벨을 보며 배움.</p>
+        <p class="note">분류 · 회귀 / 이 책의 대부분</p>
+      </div>
+      <div class="card">
+        <h3><span class="ico">🧩</span>비지도학습</h3>
+        <p><b>정답 없이</b> 데이터의 숨은 구조·그룹을 스스로 찾음. "비슷한 손님끼리 묶기".</p>
+        <p class="note">군집화 · 차원축소</p>
+      </div>
+      <div class="card">
+        <h3><span class="ico">🎮</span>강화학습</h3>
+        <p><b>보상</b>을 통해 시행착오로 학습. 게임 점수를 올리며 잘하는 법을 터득.</p>
+        <p class="note">알파고 · 로봇 제어</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.6rem">
+      <div class="tag">💡 비유</div>
+      <p><b>지도학습</b>은 답지 있는 문제집, <b>비지도학습</b>은 답 없이 비슷한 문제끼리 분류하기, <b>강화학습</b>은 게임하며 고득점 노하우 익히기.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. 데이터 전쟁 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>데이터 전쟁</div>
+  <h2 class="slide-title">왜 다들 "데이터, 데이터" 할까?</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <p class="lead">머신러닝의 성능은 알고리즘보다 <b class="grad-text" style="font-weight:800">데이터의 양과 질</b>에 크게 좌우됩니다.</p>
+        <ul class="clean">
+          <li>좋은 재료가 있어야 좋은 요리가 나오듯, <b>좋은 데이터</b>가 있어야 좋은 모델이 나옴</li>
+          <li>그래서 구글·네이버·쿠팡 같은 회사가 <b>데이터를 핵심 자산</b>으로 여김</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 요리</div>
+        <p>최고의 셰프(알고리즘)도 <b>신선한 재료(데이터)</b>가 없으면 맛을 못 냅니다. 반대로 평범한 알고리즘도 좋은 데이터가 많으면 꽤 괜찮은 결과를 냅니다. 그래서 현업에서는 <b>데이터 수집·정제</b>에 가장 많은 시간을 씁니다.</p>
+      </div>
+    </div>
+    <p class="note">📌 실무 팁: 데이터 분석가·ML 엔지니어의 업무 시간 중 <b>약 70~80%가 데이터 다듬기</b>라는 말이 있을 정도예요. 그래서 오늘 배울 넘파이·판다스가 중요합니다.</p>
+  </div>
+</section>
+
+<!-- ============ 9. 파이썬 vs R ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>파이썬과 R 비교</div>
+  <h2 class="slide-title">왜 파이썬일까?</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col new">
+        <h4>🐍 파이썬</h4>
+        <p>배우기 쉽고 문법이 직관적</p>
+        <p>ML·딥러닝·웹·자동화까지 <b>만능</b></p>
+        <p>현업·취업 시장에서 <b>압도적 표준</b></p>
+      </div>
+      <div class="col old">
+        <h4>📊 R</h4>
+        <p>통계·시각화에 특화, 학계에서 강세</p>
+        <p>순수 통계 분석엔 강력</p>
+        <p>범용성·생태계는 파이썬이 우위</p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:1.4rem">🔑 둘 다 좋은 도구지만, <b>AI 취업</b>이 목표라면 파이썬이 정답에 가깝습니다. 딥러닝 프레임워크(파이토치·텐서플로)가 모두 파이썬 중심이기 때문이에요.</p>
+  </div>
+</section>
+
+<!-- ============ 10. 미니 퀴즈 1 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>잠깐, 확인하고 갈게요</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="1">
+      <span class="q-tag">QUIZ 01</span>
+      <div class="q">"고양이/개 사진 1만 장에 <b>'고양이' '개' 라벨</b>을 붙여 학습시켰다." 이것은 어떤 학습일까요?</div>
+      <div class="opts">
+        <div class="opt">① 비지도학습</div>
+        <div class="opt">② 지도학습</div>
+        <div class="opt">③ 강화학습</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ②  지도학습</b> — '정답(라벨)'이 함께 주어졌으니 지도학습입니다. 라벨이 없었다면 비지도학습이겠죠.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 2 ============ -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 02</div>
+  <h2>파이썬 머신러닝 생태계</h2>
+  <p class="sec-desc">우리가 앞으로 쓸 도구상자를 열어봅니다. 어떤 패키지가, 무슨 역할을 하는지.</p>
+</section>
+
+<!-- ============ 11. 주요 패키지 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>주요 패키지</div>
+  <h2 class="slide-title">우리의 도구상자</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card"><h3><span class="ico">🔢</span>NumPy</h3><p>숫자·행렬 계산의 엔진. <b>빠른 수치 연산</b>의 기반. (오늘 배움)</p></div>
+      <div class="card"><h3><span class="ico">🐼</span>Pandas</h3><p>표(엑셀형) 데이터를 다루는 도구. <b>데이터 정제·분석</b>. (오늘 배움)</p></div>
+      <div class="card"><h3><span class="ico">🤖</span>Scikit-learn</h3><p>머신러닝 알고리즘 모음. <b>모델 학습·예측</b>의 표준 도구. (2장~)</p></div>
+      <div class="card"><h3><span class="ico">📈</span>Matplotlib / Seaborn</h3><p>데이터를 <b>그래프로 시각화</b>. (10장)</p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.5rem">
+      <div class="tag">💡 비유 · 주방</div>
+      <p><b>NumPy</b>는 가스레인지(에너지원), <b>Pandas</b>는 도마와 칼(재료 손질), <b>Scikit-learn</b>은 레시피 모음집, <b>Matplotlib</b>은 플레이팅 접시. 다 함께 써야 요리가 완성됩니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 12. 설치 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>S/W 설치</div>
+  <h2 class="slide-title">환경 준비 — 한 번만 하면 됩니다</h2>
+  <div class="body-content">
+    <ul class="clean">
+      <li><b>Anaconda(아나콘다)</b> 설치 — 파이썬 + 주요 패키지(넘파이·판다스 등)를 <b>한 방에</b> 설치해주는 패키지</li>
+      <li><b>Jupyter Notebook / JupyterLab</b> — 코드를 한 칸(셀)씩 실행하고 결과를 바로 보는 <b>실습 노트</b></li>
+      <li>또는 <b>Google Colab</b> — 설치 없이 <b>웹 브라우저</b>에서 바로 실습 (초심자 추천!)</li>
+    </ul>
+    <div class="practice" style="margin-top:1.6rem">
+      <div class="p-tag">⌨️ 직접 해보기</div>
+      <p>새 노트북을 열고 <code>import numpy as np</code> 와 <code>import pandas as pd</code> 를 실행해 보세요. 에러 없이 넘어가면 <b>준비 완료</b>입니다! ✅</p>
+    </div>
+    <p class="note">💡 <b>as np</b>, <b>as pd</b> 는 "별명"입니다. 매번 numpy라고 길게 쓰기 귀찮으니 np로 줄여 부르는 약속이에요.</p>
+  </div>
+</section>
+
+<!-- ============ SECTION 3 ============ -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 03</div>
+  <h2>넘파이 (NumPy)</h2>
+  <p class="sec-desc">모든 머신러닝 라이브러리가 그 위에서 돌아가는 토대. 숫자 묶음을 빠르게 다루는 법.</p>
+</section>
+
+<!-- ============ 13. 넘파이 왜 필요 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>넘파이 개요</div>
+  <h2 class="slide-title">왜 리스트로 안 하고 넘파이를 쓸까?</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>파이썬 <b>리스트</b>도 숫자를 담지만, 양이 많아지면 <b>느립니다</b></li>
+          <li>넘파이의 <b>ndarray</b>는 같은 계산을 <b>수십~수백 배 빠르게</b></li>
+          <li>행렬 계산·통계 함수가 <b>한 줄</b>로 끝남</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유</div>
+        <p>리스트가 <b>장바구니에 물건을 아무렇게나 담는 것</b>이라면, ndarray는 <b>규격 맞춘 칸막이 상자</b>에 정리하는 것. 정리돼 있으니 한 번에 빠르게 처리할 수 있어요.</p>
+      </div>
+    </div>
+    <div style="margin-top:1.4rem">
+      <div class="code-label">핵심 객체: ndarray (N-dimensional array)</div>
+      <div class="code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+array1 = np.<span class="fn">array</span>([<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>])      <span class="cm"># 1차원 배열 생성</span>
+<span class="fn">print</span>(array1.shape)         <span class="out"># (3,)  → 원소 3개짜리 1차원</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 14. ndarray 개요 shape/ndim ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>ndarray 개요</div>
+  <h2 class="slide-title">shape — 배열의 "모양"을 읽는 법</h2>
+  <div class="body-content">
+    <div class="code"><span class="cm"># 1차원: 원소 3개</span>
+np.<span class="fn">array</span>([<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>]).shape          <span class="out"># (3,)</span>
+
+<span class="cm"># 2차원: 2행 3열 (표 모양)</span>
+np.<span class="fn">array</span>([[<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>],
+          [<span class="nm">2</span>,<span class="nm">3</span>,<span class="nm">4</span>]]).shape  <span class="out"># (2, 3)</span>
+
+array2.ndim                          <span class="out"># 2  → 차원(축)의 개수</span></div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 핵심 직관</div>
+      <p><b>shape는 "각 방향으로 몇 칸인가"</b>를 알려주는 (행, 열) 숫자입니다. ML에서는 거의 항상 "내 데이터 모양이 뭐지?"부터 확인해요. <b>(샘플 수, 특성 수)</b> 형태가 가장 흔합니다.</p>
+    </div>
+    <p class="note">📌 <b>(3,)</b> 처럼 쉼표 뒤가 비면 1차원이라는 뜻. <b>(1, 3)</b> 과 <b>(3,)</b> 은 다른 모양입니다!</p>
+  </div>
+</section>
+
+<!-- ============ 15. dtype ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>데이터 타입</div>
+  <h2 class="slide-title">한 배열 = 한 가지 타입</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code-label">타입은 섞이지 않고 통일됩니다</div>
+        <div class="code"><span class="cm"># 정수+문자 → 모두 문자로 통일</span>
+np.<span class="fn">array</span>([<span class="nm">1</span>, <span class="nm">2</span>, <span class="st">'test'</span>]).dtype
+<span class="out"># dtype('&lt;U11')  → 문자(string)</span>
+
+<span class="cm"># 타입 바꾸기: astype()</span>
+arr = np.<span class="fn">array</span>([<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>])
+arr.<span class="fn">astype</span>(<span class="st">'float64'</span>)
+<span class="out"># [1. 2. 3.]  → 실수로 변환</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 한 칸 한 종류</div>
+        <p>ndarray는 <b>달걀판</b> 같아요. 모든 칸에 같은 종류(달걀)만 들어갑니다. 숫자랑 글자를 섞으면 넘파이가 <b>"그럼 다 글자로 통일할게"</b> 하고 맞춰버립니다.</p>
+        <p style="margin-top:.8rem"><b>왜 중요?</b> 같은 타입이라야 빠른 계산이 가능하기 때문!</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 16. arange/zeros/ones ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>편리한 생성</div>
+  <h2 class="slide-title">자주 쓰는 배열, 한 줄로 만들기</h2>
+  <div class="body-content">
+    <div class="grid grid-3">
+      <div class="card"><h3>arange</h3>
+        <div class="code" style="font-size:.92rem;box-shadow:none">np.<span class="fn">arange</span>(<span class="nm">10</span>)
+<span class="out"># 0~9 연속 숫자</span></div>
+        <p class="note">range의 배열 버전</p>
+      </div>
+      <div class="card"><h3>zeros</h3>
+        <div class="code" style="font-size:.92rem;box-shadow:none">np.<span class="fn">zeros</span>((<span class="nm">3</span>,<span class="nm">2</span>))
+<span class="out"># 0으로 채운 3×2</span></div>
+        <p class="note">0으로 초기화</p>
+      </div>
+      <div class="card"><h3>ones</h3>
+        <div class="code" style="font-size:.92rem;box-shadow:none">np.<span class="fn">ones</span>((<span class="nm">3</span>,<span class="nm">2</span>))
+<span class="out"># 1로 채운 3×2</span></div>
+        <p class="note">1로 초기화</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.6rem">
+      <div class="tag">💡 언제 쓰나?</div>
+      <p>실험용 데이터를 만들거나, "일단 0으로 채운 빈 그릇"을 준비해 두고 값을 채워나갈 때 자주 씁니다. <b>arange</b>는 순서가 필요한 인덱스 만들 때 단골이에요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 17. reshape ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>reshape</div>
+  <h2 class="slide-title">모양 바꾸기 — reshape()</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code"><span class="cm"># 0~9 (10개) 를 2행 5열로</span>
+np.<span class="fn">arange</span>(<span class="nm">10</span>).<span class="fn">reshape</span>(<span class="nm">2</span>,<span class="nm">5</span>)
+
+<span class="cm"># -1 = "알아서 계산해줘"</span>
+np.<span class="fn">arange</span>(<span class="nm">10</span>).<span class="fn">reshape</span>(-<span class="nm">1</span>,<span class="nm">5</span>)
+<span class="out"># 열을 5로 맞추니 행은 자동 2</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · -1의 마법</div>
+        <p><b>reshape(-1, 5)</b> = "물건 10개를 <b>한 줄에 5개씩</b> 담아줘. 줄 수(행)는 네가 알아서 계산해." → 자동으로 2줄!</p>
+        <p style="margin-top:.8rem">원소 개수가 안 맞으면(예: 10개를 3열로) <b>에러</b>가 납니다.</p>
+      </div>
+    </div>
+    <p class="note">📌 ML에서 데이터를 모델이 원하는 모양으로 맞출 때 정말 자주 씁니다. <b>reshape(-1, 1)</b>(세로 한 줄)도 단골 패턴!</p>
+  </div>
+</section>
+
+<!-- ============ 18. 인덱싱 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>인덱싱(Indexing)</div>
+  <h2 class="slide-title">원하는 값만 골라내기 — 4가지 방법</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card"><h3>① 단일 값</h3>
+        <div class="code" style="font-size:.9rem;box-shadow:none">arr[<span class="nm">2</span>]      <span class="out"># 3번째 값</span>
+arr2d[<span class="nm">1</span>,<span class="nm">0</span>]  <span class="out"># (2행,1열)</span></div>
+        <p class="note">인덱스는 <b>0부터</b>! 음수는 뒤에서부터</p>
+      </div>
+      <div class="card"><h3>② 슬라이싱(:)</h3>
+        <div class="code" style="font-size:.9rem;box-shadow:none">arr[<span class="nm">0</span>:<span class="nm">3</span>]   <span class="out"># 0,1,2번</span>
+arr2d[:<span class="nm">2</span>,<span class="nm">1</span>:]</div>
+        <p class="note">범위로 잘라내기</p>
+      </div>
+      <div class="card"><h3>③ 팬시 인덱싱</h3>
+        <div class="code" style="font-size:.9rem;box-shadow:none">arr2d[[<span class="nm">0</span>,<span class="nm">1</span>]]
+<span class="out"># 0행, 1행만 콕 집어</span></div>
+        <p class="note">리스트로 여러 개 한꺼번에</p>
+      </div>
+      <div class="card"><h3>④ 불린 인덱싱 ⭐</h3>
+        <div class="code" style="font-size:.9rem;box-shadow:none">arr[arr &gt; <span class="nm">5</span>]
+<span class="out"># 5보다 큰 값만</span></div>
+        <p class="note">조건에 맞는 것만! <b>가장 많이 씀</b></p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:1.2rem">🔑 특히 <b>불린 인덱싱</b>("조건을 주면 맞는 것만 쏙 뽑기")은 데이터 분석의 핵심 기술입니다. 판다스에서도 똑같이 쓰여요.</p>
+  </div>
+</section>
+
+<!-- ============ 19. 정렬 sort/argsort ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>정렬 sort() · argsort()</div>
+  <h2 class="slide-title">정렬, 그리고 "순서의 위치"</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code"><span class="cm"># sort: 값을 정렬</span>
+np.<span class="fn">sort</span>([<span class="nm">3</span>,<span class="nm">1</span>,<span class="nm">9</span>,<span class="nm">5</span>])
+<span class="out"># [1 3 5 9]</span>
+
+<span class="cm"># argsort: 정렬했을 때의 '원래 인덱스'</span>
+np.<span class="fn">argsort</span>([<span class="nm">3</span>,<span class="nm">1</span>,<span class="nm">9</span>,<span class="nm">5</span>])
+<span class="out"># [1 0 3 2]</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 argsort가 왜 유용?</div>
+        <p>학생 <b>점수</b>를 정렬하면서, 동시에 그 순서대로 <b>이름</b>도 따라오게 하고 싶을 때!</p>
+        <div class="code" style="font-size:.88rem;margin-top:.7rem;box-shadow:none">idx = np.<span class="fn">argsort</span>(scores)
+names[idx]  <span class="out"># 점수순 이름</span></div>
+      </div>
+    </div>
+    <p class="note">📌 "성적순 등수", "추천 점수 높은 순 상품 정렬" 등 <b>순위 매기기</b>에 argsort가 단골로 등장합니다.</p>
+  </div>
+</section>
+
+<!-- ============ 20. 선형대수 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>선형대수 연산</div>
+  <h2 class="slide-title">행렬 내적 · 전치 (가볍게 맛만)</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code"><span class="cm"># 내적(dot): 행렬 곱셈</span>
+np.<span class="fn">dot</span>(A, B)
+
+<span class="cm"># 전치(transpose): 행↔열 뒤집기</span>
+np.<span class="fn">transpose</span>(A)
+<span class="cm"># 또는 A.T</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 지금은 이 정도만</div>
+        <p>내적·전치는 머신러닝 내부 계산의 <b>기본 연산</b>입니다. <b>지금 외울 필요는 없어요.</b> "이런 게 있고, 넘파이가 한 줄로 해준다" 정도만 기억하면 충분합니다. 필요할 때 다시 봅니다.</p>
+      </div>
+    </div>
+    <p class="note">🔑 딥러닝의 핵심 계산도 결국 거대한 <b>행렬 곱셈</b>의 반복입니다. 넘파이가 이걸 빠르게 처리해주는 거예요.</p>
+  </div>
+</section>
+
+<!-- ============ 21. 퀴즈 + 실습 (넘파이) ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>넘파이 점검</div>
+  <h2 class="slide-title">미니 퀴즈 & 직접 해보기</h2>
+  <div class="body-content">
+    <div class="two-col" style="align-items:stretch">
+      <div class="quiz" data-answer="1">
+        <span class="q-tag">QUIZ 02</span>
+        <div class="q"><code style="font-family:monospace">np.arange(12).reshape(-1, 4)</code><br>의 결과 shape는?</div>
+        <div class="opts">
+          <div class="opt">① (4, 3)</div>
+          <div class="opt">② (3, 4)</div>
+          <div class="opt">③ (12, 1)</div>
+        </div>
+        <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+        <div class="answer"><b>정답: ②  (3, 4)</b> — 원소 12개를 "열 4개"로 맞추면, 행은 자동으로 12÷4=3.</div>
+      </div>
+      <div class="practice">
+        <div class="p-tag">⌨️ 직접 해보기</div>
+        <p>노트북에서 실행해 보세요:</p>
+        <p style="margin-top:.6rem">1. <code>arr = np.arange(1, 11)</code> 로 1~10 배열 만들기</p>
+        <p style="margin-top:.5rem">2. <code>arr[arr % 2 == 0]</code> 로 <b>짝수만</b> 골라내기</p>
+        <p style="margin-top:.5rem">3. 결과가 <code>[2 4 6 8 10]</code> 이 나오면 성공! 🎉</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 4 ============ -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 04</div>
+  <h2>판다스 (Pandas)</h2>
+  <p class="sec-desc">엑셀 표를 파이썬에서 자유자재로. 실무 데이터 분석의 진짜 주인공입니다.</p>
+</section>
+
+<!-- ============ 22. 판다스 왜 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>판다스 시작</div>
+  <h2 class="slide-title">판다스 = 파이썬으로 쓰는 엑셀</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li><b>DataFrame</b> — 행과 열로 된 <b>표</b> (엑셀 시트와 똑같이 생각하면 됨)</li>
+          <li><b>Series</b> — 표의 <b>한 개 열</b> (1차원)</li>
+          <li>CSV·엑셀 파일을 읽고, 필터링·집계·정제까지 코드로</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유</div>
+        <p>엑셀은 마우스로 클릭클릭 하지만, 판다스는 <b>코드로</b> 합니다. 처음엔 엑셀이 쉬워 보여도, 데이터가 <b>수십만 줄</b>이 되면 코드가 압도적으로 빠르고 정확해요. 게다가 <b>같은 작업을 반복·자동화</b>할 수 있죠.</p>
+      </div>
+    </div>
+    <div class="code" style="margin-top:1.3rem"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+df = pd.<span class="fn">read_csv</span>(<span class="st">'titanic_train.csv'</span>)   <span class="cm"># CSV 파일 → DataFrame</span></div>
+  </div>
+</section>
+
+<!-- ============ 23. 기본 API ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>기본 API</div>
+  <h2 class="slide-title">데이터를 처음 만나면 하는 일</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card"><h3><code style="font-size:1.1rem">df.head(3)</code></h3><p>앞에서 <b>3줄</b>만 미리보기. "데이터가 어떻게 생겼지?" 첫 확인.</p></div>
+      <div class="card"><h3><code style="font-size:1.1rem">df.shape</code></h3><p><b>(행 수, 열 수)</b>. "데이터가 몇 개지?" 규모 파악.</p></div>
+      <div class="card"><h3><code style="font-size:1.1rem">df.info()</code></h3><p>각 열의 <b>타입과 결측치</b> 현황. "빈 값 있나?" 점검.</p></div>
+      <div class="card"><h3><code style="font-size:1.1rem">df.describe()</code></h3><p>숫자 열의 <b>평균·최대·최소</b> 등 통계 요약.</p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 실무 루틴</div>
+      <p>새 데이터를 받으면 거의 항상 <b>head → shape → info → describe</b> 순서로 "탐색"부터 합니다. 마치 <b>새 동네에 이사 가면 먼저 한 바퀴 둘러보는 것</b>처럼요.</p>
+    </div>
+    <p class="note">📌 <code>df['Pclass'].value_counts()</code> — 특정 열에 <b>어떤 값이 몇 개씩</b> 있는지 세기. 엄청 자주 씁니다.</p>
+  </div>
+</section>
+
+<!-- ============ 24. 상호 변환 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>상호 변환</div>
+  <h2 class="slide-title">리스트·딕셔너리 ↔ DataFrame</h2>
+  <div class="body-content">
+    <div class="code"><span class="cm"># 딕셔너리로 DataFrame 만들기 (key=열 이름)</span>
+data = {<span class="st">'col1'</span>:[<span class="nm">1</span>,<span class="nm">11</span>], <span class="st">'col2'</span>:[<span class="nm">2</span>,<span class="nm">22</span>], <span class="st">'col3'</span>:[<span class="nm">3</span>,<span class="nm">33</span>]}
+df = pd.<span class="fn">DataFrame</span>(data)
+
+<span class="cm"># DataFrame을 넘파이 배열로 다시 변환</span>
+df.values            <span class="out"># → ndarray (모델에 넣을 때 자주)</span></div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 왜 변환을 알아야 하나?</div>
+      <p>현실에서는 데이터가 리스트·딕셔너리·CSV 등 <b>제각각의 모양</b>으로 옵니다. 또 <b>판다스로 정제 → 넘파이로 변환 → 모델에 입력</b>이 전형적인 흐름이에요. 그래서 둘 사이를 오가는 법이 중요합니다.</p>
+    </div>
+    <p class="note">📌 기억할 다리: <b>df.values</b> 는 DataFrame을 넘파이 ndarray로 바꿔줍니다.</p>
+  </div>
+</section>
+
+<!-- ============ 25. 컬럼 생성/수정/삭제 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>컬럼 생성·수정·삭제</div>
+  <h2 class="slide-title">열을 만들고, 고치고, 지우기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code"><span class="cm"># 새 열 추가 (기존 열로 계산도 가능)</span>
+df[<span class="st">'Age_by_10'</span>] = df[<span class="st">'Age'</span>] * <span class="nm">10</span>
+df[<span class="st">'Family'</span>] = df[<span class="st">'SibSp'</span>] + df[<span class="st">'Parch'</span>] + <span class="nm">1</span>
+
+<span class="cm"># 열 삭제: axis=1 (열 방향)</span>
+df.<span class="fn">drop</span>(<span class="st">'Age_0'</span>, axis=<span class="nm">1</span>, inplace=<span class="kw">True</span>)</div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 axis 헷갈림 정리</div>
+        <p><b>axis=0 = 행(가로줄)</b> 방향<br><b>axis=1 = 열(세로줄)</b> 방향</p>
+        <p style="margin-top:.7rem">"열을 지운다" → <b>axis=1</b>. 외우는 팁: 0은 위아래(행), 1은 좌우(열).</p>
+        <p style="margin-top:.7rem"><b>inplace=True</b> = "원본을 직접 고쳐라"</p>
+      </div>
+    </div>
+    <p class="note">⚠️ <b>피처 엔지니어링</b>(기존 열로 새 열 만들기)은 모델 성능을 좌우하는 핵심 작업입니다. 여기서 그 기초를 배우는 거예요.</p>
+  </div>
+</section>
+
+<!-- ============ 26. 데이터 셀렉션 loc/iloc ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>데이터 셀렉션</div>
+  <h2 class="slide-title">loc vs iloc — 헷갈리는 단짝</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col new">
+        <h4>loc — 이름(라벨) 기준</h4>
+        <div class="code" style="font-size:.92rem;box-shadow:none;margin-top:.5rem">df.<span class="fn">loc</span>[<span class="st">'one'</span>, <span class="st">'Name'</span>]
+df.<span class="fn">loc</span>[df[<span class="st">'Age'</span>]&gt;<span class="nm">60</span>, [<span class="st">'Name'</span>,<span class="st">'Age'</span>]]</div>
+        <p class="note" style="margin-top:.7rem"><b>l</b>oc = <b>l</b>abel(이름)으로 찾기</p>
+      </div>
+      <div class="col old">
+        <h4>iloc — 위치(숫자) 기준</h4>
+        <div class="code" style="font-size:.92rem;box-shadow:none;margin-top:.5rem">df.<span class="fn">iloc</span>[<span class="nm">0</span>, <span class="nm">0</span>]
+df.<span class="fn">iloc</span>[:, -<span class="nm">1</span>]  <span class="out"># 맨 끝 열</span></div>
+        <p class="note" style="margin-top:.7rem"><b>i</b>loc = <b>i</b>nteger(숫자)로 찾기</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 아파트 찾기</div>
+      <p><b>loc</b>는 "<b>홍길동 씨 집</b>"(이름표)으로 찾기, <b>iloc</b>는 "<b>왼쪽에서 3번째 집</b>"(위치 번호)으로 찾기. 둘 다 같은 집을 찾지만 기준이 다릅니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 27. 불린 인덱싱 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>불린 인덱싱</div>
+  <h2 class="slide-title">조건으로 걸러내기 (실무 최다 사용 ⭐)</h2>
+  <div class="body-content">
+    <div class="code"><span class="cm"># 나이가 60살 초과인 승객만</span>
+df[df[<span class="st">'Age'</span>] &gt; <span class="nm">60</span>]
+
+<span class="cm"># 여러 조건: & (그리고) | (또는), 각 조건은 ( ) 로 감싸기!</span>
+df[ (df[<span class="st">'Age'</span>]&gt;<span class="nm">60</span>) &amp; (df[<span class="st">'Pclass'</span>]==<span class="nm">1</span>) &amp; (df[<span class="st">'Sex'</span>]==<span class="st">'female'</span>) ]
+<span class="out"># 60세 초과 + 1등석 + 여성 승객</span></div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 비유 · 검색 필터</div>
+      <p>쇼핑몰에서 "<b>5만원 이하 + 무료배송 + 별점 4 이상</b>" 필터를 거는 것과 똑같아요. 조건을 <b>&</b>로 이어 붙이면 됩니다. 단, 각 조건은 꼭 <b>괄호</b>로 감싸야 에러가 안 나요!</p>
+    </div>
+    <p class="note">🔑 넘파이의 불린 인덱싱과 <b>완전히 같은 개념</b>. 한 번 익히면 평생 씁니다.</p>
+  </div>
+</section>
+
+<!-- ============ 28. groupby ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>정렬 · 집계 · GroupBy</div>
+  <h2 class="slide-title">묶어서 요약하기 — groupby()</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code"><span class="cm"># 정렬</span>
+df.<span class="fn">sort_values</span>(by=<span class="st">'Name'</span>)
+
+<span class="cm"># 등급(Pclass)별로 묶어서 개수</span>
+df.<span class="fn">groupby</span>(<span class="st">'Pclass'</span>).<span class="fn">count</span>()
+
+<span class="cm"># 등급별로 여러 통계 한 번에</span>
+df.<span class="fn">groupby</span>(<span class="st">'Pclass'</span>).<span class="fn">agg</span>(
+   {<span class="st">'Age'</span>:<span class="st">'max'</span>, <span class="st">'Fare'</span>:<span class="st">'mean'</span>})</div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 반별 평균</div>
+        <p>"학생 전체"를 "<b>반별로 묶어서</b> 평균 점수 내기"가 groupby예요. 엑셀의 <b>피벗 테이블</b>과 같은 일을 합니다.</p>
+        <p style="margin-top:.7rem">"지역별 매출", "등급별 생존율"처럼 <b>그룹별 인사이트</b>를 뽑을 때 필수.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 29. 결손 데이터 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>결손 데이터 처리</div>
+  <h2 class="slide-title">빈 칸(결측치) 다루기</h2>
+  <div class="body-content">
+    <div class="code"><span class="cm"># 빈 값(NaN)이 열마다 몇 개인지 세기</span>
+df.<span class="fn">isna</span>().<span class="fn">sum</span>()
+
+<span class="cm"># 빈 값을 채우기 (fillna)</span>
+df[<span class="st">'Age'</span>] = df[<span class="st">'Age'</span>].<span class="fn">fillna</span>(df[<span class="st">'Age'</span>].<span class="fn">mean</span>())  <span class="cm"># 나이는 평균값으로</span>
+df[<span class="st">'Embarked'</span>] = df[<span class="st">'Embarked'</span>].<span class="fn">fillna</span>(<span class="st">'S'</span>)        <span class="cm"># 항구는 'S'로</span></div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 왜 중요한가</div>
+      <p>현실 데이터엔 <b>빈 칸이 정말 많습니다.</b> (설문 미응답, 센서 오류 등) 대부분의 ML 모델은 <b>빈 칸이 있으면 에러</b>를 내요. 그래서 "어떻게 채울까(평균? 최빈값?)"를 정하는 게 데이터 전처리의 핵심 단계입니다.</p>
+    </div>
+    <p class="note">📌 <b>NaN</b> = "Not a Number", 즉 비어있는 값. <code>isna()</code>로 찾고 <code>fillna()</code>로 채웁니다.</p>
+  </div>
+</section>
+
+<!-- ============ 30. apply lambda ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>apply · lambda</div>
+  <h2 class="slide-title">열 전체에 나만의 규칙 적용하기</h2>
+  <div class="body-content">
+    <div class="code"><span class="cm"># lambda = 이름 없는 한 줄짜리 함수</span>
+df[<span class="st">'Name_len'</span>] = df[<span class="st">'Name'</span>].<span class="fn">apply</span>(<span class="kw">lambda</span> x : <span class="fn">len</span>(x))   <span class="cm"># 이름 길이</span>
+
+<span class="cm"># 나이를 어린이/어른으로 분류</span>
+df[<span class="st">'Child_Adult'</span>] = df[<span class="st">'Age'</span>].<span class="fn">apply</span>(
+    <span class="kw">lambda</span> x : <span class="st">'Child'</span> <span class="kw">if</span> x &lt;= <span class="nm">15</span> <span class="kw">else</span> <span class="st">'Adult'</span>)</div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 비유 · 도장 찍기</div>
+      <p><b>apply</b>는 "이 규칙을 <b>모든 행에 한 번씩 도장 찍듯</b> 적용해줘"라는 명령이에요. <b>lambda</b>는 그 규칙을 짧게 쓰는 법. 수만 줄도 한 줄 코드로 처리됩니다.</p>
+    </div>
+    <p class="note">🔑 연속된 나이를 '어린이/청소년/성인' 같은 <b>구간(범주)으로 묶는 것</b>은 피처 엔지니어링의 단골 기법입니다.</p>
+  </div>
+</section>
+
+<!-- ============ 31. 퀴즈 + 실습 (판다스) ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>판다스 점검</div>
+  <h2 class="slide-title">미니 퀴즈 & 직접 해보기</h2>
+  <div class="body-content">
+    <div class="two-col" style="align-items:stretch">
+      <div class="quiz" data-answer="1">
+        <span class="q-tag">QUIZ 03</span>
+        <div class="q"><b>위치(숫자)로</b> 첫 번째 행, 첫 번째 열의 값을 가져오려면?</div>
+        <div class="opts">
+          <div class="opt">① df.loc[0, 0]</div>
+          <div class="opt">② df.iloc[0, 0]</div>
+          <div class="opt">③ df[0][0]</div>
+        </div>
+        <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+        <div class="answer"><b>정답: ②  df.iloc[0, 0]</b> — i<b>loc</b>는 <b>i</b>nteger(숫자 위치) 기준. loc는 이름(라벨) 기준이라 숫자 위치엔 안 맞아요.</div>
+      </div>
+      <div class="practice">
+        <div class="p-tag">⌨️ 직접 해보기</div>
+        <p><code>titanic_train.csv</code>로 실행해 보세요:</p>
+        <p style="margin-top:.6rem">1. <code>df = pd.read_csv('titanic_train.csv')</code></p>
+        <p style="margin-top:.5rem">2. <b>나이 20세 미만 + 여성</b> 승객만 골라내기</p>
+        <p style="margin-top:.5rem">3. <code>df.groupby('Pclass')['Survived'].mean()</code> 으로 <b>등급별 생존율</b> 확인해 보기 📊</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 5 ============ -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 05</div>
+  <h2>정리</h2>
+  <p class="sec-desc">오늘 손에 넣은 무기를 점검하고, 다음 여정을 살짝 들여다봅니다.</p>
+</section>
+
+<!-- ============ 33. 핵심 정리 ============ -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>1장 핵심 정리</div>
+  <h2 class="slide-title">오늘의 한 페이지 요약</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card accent"><h3><span class="ico">🧠</span>머신러닝</h3><p>규칙을 짜주는 게 아니라 <b>데이터로 규칙을 학습</b>. 지도/비지도/강화로 나뉨. <b>데이터의 질·양</b>이 성능을 좌우.</p></div>
+      <div class="card accent"><h3><span class="ico">🧰</span>생태계</h3><p>NumPy·Pandas·Scikit-learn·Matplotlib. 파이썬이 AI 분야의 <b>사실상 표준</b>.</p></div>
+      <div class="card accent"><h3><span class="ico">🔢</span>넘파이</h3><p><b>shape</b>로 모양 읽기, <b>reshape</b>로 변형, <b>불린 인덱싱</b>으로 조건 필터, <b>정렬·내적</b>. 빠른 계산의 토대.</p></div>
+      <div class="card accent"><h3><span class="ico">🐼</span>판다스</h3><p><b>DataFrame</b>으로 표 다루기, <b>loc/iloc</b>·불린 인덱싱·<b>groupby</b>·<b>fillna</b>·<b>apply</b>. 데이터 전처리의 주력.</p></div>
+    </div>
+    <p class="note" style="margin-top:1.3rem">✅ 다 외우지 못해도 괜찮아요. <b>"이런 도구가 있고, 필요할 때 찾아 쓸 수 있다"</b>는 감만 잡으면 1장은 성공입니다.</p>
+  </div>
+</section>
+
+<!-- ============ 34. 다음 장 / 마무리 ============ -->
+<section class="slide cover">
+  <div class="chapter-tag">NEXT · CHAPTER 02</div>
+  <h1>이제 진짜 모델을<br>만들어 봅니다 🚀</h1>
+  <p class="sub">다음 장에서는 <b style="color:#fff">사이킷런(Scikit-learn)</b>으로 첫 머신러닝 모델 — <b style="color:#fff">붓꽃 품종 예측</b>을 직접 만들어 봅니다. 오늘 배운 넘파이·판다스가 그 재료가 됩니다.</p>
+  <p class="sub" style="margin-top:1.4rem;font-size:1.25rem;color:#9fb3c8">💪 오늘의 숙제: 노트북의 실습 코드를 <b style="color:#cdd9e8">직접 한 번씩 실행</b>해 보기. 손으로 쳐봐야 진짜 내 것이 됩니다.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 1장 끝 · 수고했습니다!</div>
+</section>
+
+</div>
+
+<!-- ============ HUD / NAV ============ -->
+<div id="sectionlabel">1장 · 머신러닝과 생태계</div>
+<div class="hint">← → 또는 스페이스로 이동 · F 전체화면</div>
+<div id="hud">
+  <button onclick="go(-1)" aria-label="이전">‹</button>
+  <span class="counter"><span id="cur">1</span> / <span id="total">1</span></span>
+  <button onclick="go(1)" aria-label="다음">›</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function render(){
+    slides.forEach((s,i)=>s.classList.toggle('active', i===idx));
+    document.getElementById('cur').textContent = idx+1;
+    document.getElementById('progress').style.width = ((idx+1)/slides.length*100)+'%';
+  }
+  function go(d){
+    const n = idx + d;
+    if(n>=0 && n<slides.length){ idx=n; render(); }
+  }
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){ e.preventDefault(); go(1); }
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); go(-1); }
+    else if(e.key==='Home'){ idx=0; render(); }
+    else if(e.key==='End'){ idx=slides.length-1; render(); }
+    else if(e.key.toLowerCase()==='f'){
+      if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+  // click to advance (ignore clicks on interactive quiz elements)
+  document.getElementById('deck').addEventListener('click', e=>{
+    if(e.target.closest('.opt,.reveal-btn,button,a')) return;
+    const x = e.clientX / window.innerWidth;
+    go(x < 0.25 ? -1 : 1);
+  });
+
+  function revealQuiz(btn){
+    const quiz = btn.closest('.quiz');
+    const ansIdx = parseInt(quiz.dataset.answer,10);
+    const opts = quiz.querySelectorAll('.opt');
+    if(opts[ansIdx]) opts[ansIdx].classList.add('reveal-correct');
+    quiz.querySelector('.answer').classList.add('show');
+    btn.style.display='none';
+  }
+  render();
+</script>
+</body>
+</html>

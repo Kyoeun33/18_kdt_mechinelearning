@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4장 · 분류 (Classification)</title>
+<style>
+  :root{
+    --blurple:#635bff;--blurple-2:#7a73ff;--cyan:#00d4ff;--pink:#ff7eb3;
+    --navy:#0a2540;--slate:#425466;--slate-2:#697386;--bg:#f6f9fc;--card:#ffffff;--line:#e6ebf1;
+    --code-bg:#0a1530;
+    --grad:linear-gradient(118deg,#635bff 0%,#7a73ff 38%,#00d4ff 100%);
+    --grad-warm:linear-gradient(118deg,#635bff 0%,#a855f7 50%,#ff7eb3 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#0a2540;color:var(--navy);overflow:hidden;-webkit-font-smoothing:antialiased;}
+  #deck{position:fixed;inset:0;}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;padding:5.2vh 6.5vw 6vh;background:var(--bg);overflow:hidden;}
+  .slide.active{display:flex;animation:fade .45s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  .slide::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--grad);}
+  .slide.dark::before{display:none;}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:700;color:var(--blurple);margin-bottom:1.1rem;}
+  .kicker .dot{width:9px;height:9px;border-radius:50%;background:var(--grad);}
+  h2.slide-title{font-size:2.15rem;line-height:1.18;font-weight:800;letter-spacing:-.02em;color:var(--navy);margin-bottom:1.4rem;}
+  .lead{font-size:1.42rem;line-height:1.6;color:var(--slate);max-width:62ch;}
+  .body-content{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;}
+  p{font-size:1.22rem;line-height:1.62;color:var(--slate);}
+  .grad-text{background:var(--grad-warm);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .slide.cover,.slide.section{background:#0a2540;color:#fff;justify-content:center;}
+  .slide.cover::after,.slide.section::after{content:"";position:absolute;inset:0;z-index:0;
+    background:radial-gradient(60% 80% at 78% 18%,rgba(0,212,255,.32),transparent 60%),
+      radial-gradient(70% 90% at 12% 88%,rgba(168,85,247,.40),transparent 60%),
+      radial-gradient(50% 60% at 50% 50%,rgba(99,91,255,.30),transparent 70%);}
+  .slide.cover>*,.slide.section>*{position:relative;z-index:1;}
+  .slide.cover h1{font-size:3.4rem;font-weight:800;line-height:1.1;letter-spacing:-.03em;color:#fff;margin-bottom:1.4rem;}
+  .slide.cover .sub{font-size:1.48rem;color:#c5d2e0;font-weight:500;max-width:64ch;line-height:1.55;}
+  .slide.cover .chapter-tag{display:inline-block;font-size:1.1rem;font-weight:700;color:#fff;background:var(--grad);padding:.5rem 1.2rem;border-radius:999px;margin-bottom:1.8rem;}
+  .slide.cover .footer-note{position:absolute;bottom:6vh;left:6.5vw;color:#8aa0b8;font-size:1rem;z-index:1;}
+  .slide.section .sec-num{font-size:1.3rem;font-weight:700;color:var(--cyan);margin-bottom:1rem;letter-spacing:.05em;}
+  .slide.section h2{font-size:2.9rem;font-weight:800;color:#fff;line-height:1.12;letter-spacing:-.02em;}
+  .slide.section .sec-desc{font-size:1.35rem;color:#c5d2e0;margin-top:1.3rem;max-width:60ch;line-height:1.55;}
+  .grid{display:grid;gap:1.2rem;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:1.3rem 1.45rem;box-shadow:0 2px 10px rgba(10,37,64,.05);}
+  .card h3{font-size:1.3rem;font-weight:750;color:var(--navy);margin-bottom:.5rem;display:flex;align-items:center;gap:.6rem;}
+  .card p{font-size:1.08rem;line-height:1.48;color:var(--slate);}
+  .card .ico{font-size:1.45rem;}
+  .card.accent{border-top:4px solid transparent;border-image:var(--grad) 1;}
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:.85rem;}
+  ul.clean li{font-size:1.24rem;line-height:1.5;color:var(--slate);padding-left:2rem;position:relative;}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.5em;width:11px;height:11px;border-radius:3px;background:var(--grad);}
+  ul.clean li b{color:var(--navy);font-weight:750;}
+  .code{background:var(--code-bg);border-radius:14px;padding:1.05rem 1.3rem;font-family:"SF Mono","JetBrains Mono",Consolas,monospace;font-size:1.0rem;line-height:1.6;color:#e2e8f0;overflow:auto;box-shadow:0 8px 30px rgba(10,21,48,.35);}
+  .code.sm{font-size:.92rem;}
+  .code .cm{color:#7c89a8;font-style:italic;}
+  .code .kw{color:#ff7eb3;}.code .fn{color:#00d4ff;}.code .st{color:#9be6a8;}.code .nm{color:#ffd479;}.code .out{color:#7c89a8;}
+  .code-label{font-size:.95rem;font-weight:700;color:var(--slate-2);margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;}
+  .code-label::before{content:"▸";color:var(--blurple);}
+  .analogy{background:linear-gradient(135deg,#f0f1ff,#fdf2f8);border:1px solid #e3e0ff;border-left:5px solid var(--blurple);border-radius:14px;padding:1.05rem 1.35rem;}
+  .analogy .tag{font-size:.95rem;font-weight:800;color:var(--blurple);margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem;}
+  .analogy p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .analogy p b{color:var(--blurple);}
+  .warn{background:linear-gradient(135deg,#fffbeb,#fff7ed);border:1px solid #fde68a;border-left:5px solid #f59e0b;border-radius:14px;padding:1.05rem 1.35rem;}
+  .warn .tag{font-size:.95rem;font-weight:800;color:#b45309;margin-bottom:.35rem;}
+  .warn p{font-size:1.15rem;color:var(--navy);line-height:1.5;}
+  .warn p b{color:#b45309;}
+  .quiz{background:#fff;border:2px dashed var(--blurple-2);border-radius:18px;padding:1.4rem 1.6rem;}
+  .quiz .q-tag{display:inline-flex;align-items:center;gap:.5rem;background:var(--grad);color:#fff;font-weight:700;font-size:1rem;padding:.35rem 1rem;border-radius:999px;margin-bottom:.9rem;}
+  .quiz .q{font-size:1.35rem;font-weight:700;color:var(--navy);line-height:1.45;margin-bottom:1rem;}
+  .quiz .opts{display:flex;flex-direction:column;gap:.55rem;}
+  .quiz .opt{font-size:1.15rem;color:var(--slate);padding:.6rem 1.1rem;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;transition:.18s;}
+  .quiz .opt:hover{border-color:var(--blurple-2);background:#f7f7ff;}
+  .quiz .opt.reveal-correct{border-color:#22c55e;background:#f0fdf4;color:#15803d;font-weight:700;}
+  .quiz .answer{margin-top:.9rem;font-size:1.1rem;color:var(--slate);display:none;}
+  .quiz .answer.show{display:block;animation:fade .3s;}
+  .quiz .answer b{color:#15803d;}
+  .reveal-btn{margin-top:.8rem;background:var(--blurple);color:#fff;border:none;font-size:1.02rem;font-weight:700;padding:.5rem 1.25rem;border-radius:10px;cursor:pointer;font-family:inherit;}
+  .reveal-btn:hover{background:#5249e0;}
+  .practice{background:linear-gradient(135deg,#0a2540,#1a1f4d);color:#fff;border-radius:16px;padding:1.2rem 1.5rem;}
+  .practice .p-tag{display:inline-flex;align-items:center;gap:.5rem;color:var(--cyan);font-weight:800;font-size:1.02rem;margin-bottom:.5rem;}
+  .practice p{color:#d4dff0;font-size:1.12rem;line-height:1.5;}
+  .practice code{background:rgba(0,212,255,.14);color:#7fe9ff;padding:.15em .5em;border-radius:6px;font-family:"SF Mono",monospace;font-size:.95em;}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .compare.three{grid-template-columns:1fr 1fr 1fr;}
+  .compare .col{padding:1.2rem 1.4rem;}
+  .compare .col.old{background:#fff;}
+  .compare .col.new{background:linear-gradient(135deg,#f0f1ff,#faf5ff);}
+  .compare .col h4{font-size:1.18rem;font-weight:800;margin-bottom:.7rem;}
+  .compare .col.old h4{color:var(--slate-2);}
+  .compare .col.new h4{color:var(--blurple);}
+  .compare .col p{font-size:1.05rem;line-height:1.42;margin-bottom:.5rem;}
+  .note{font-size:1.02rem;color:var(--slate-2);margin-top:.75rem;line-height:1.48;}
+  .note b{color:var(--navy);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem;align-items:center;}
+  .stack{display:flex;flex-direction:column;gap:.9rem;}
+  .flow{display:flex;align-items:stretch;gap:.5rem;margin:.4rem 0;flex-wrap:wrap;}
+  .flow .step{flex:1;min-width:120px;background:var(--grad);color:#fff;border-radius:14px;padding:.85rem .7rem;text-align:center;box-shadow:0 6px 18px rgba(99,91,255,.22);}
+  .flow .step .n{font-size:1.1rem;font-weight:800;}
+  .flow .step .s{font-size:.85rem;opacity:.9;margin-top:.15rem;}
+  .flow .arr{display:flex;align-items:center;font-size:1.4rem;color:var(--blurple);font-weight:800;}
+  .resultbar{display:flex;flex-direction:column;gap:.6rem;margin-top:.4rem;}
+  .resultbar .row{display:flex;align-items:center;gap:1rem;}
+  .resultbar .lab{width:210px;font-size:1.1rem;font-weight:700;color:var(--navy);}
+  .resultbar .track{flex:1;background:#eef0f5;border-radius:999px;height:24px;overflow:hidden;}
+  .resultbar .fill{height:100%;background:var(--grad);border-radius:999px;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;color:#fff;font-weight:700;font-size:.9rem;}
+  table.simple{border-collapse:collapse;width:100%;font-size:1.08rem;}
+  table.simple th,table.simple td{border:1px solid var(--line);padding:.55rem .7rem;text-align:center;}
+  table.simple th{background:#f0f1ff;color:var(--navy);font-weight:800;}
+  table.simple td{color:var(--slate);}
+  table.simple tr:nth-child(even) td{background:#fafbfd;}
+  table.simple .hi{color:var(--blurple);font-weight:800;}
+  table.simple td.l,table.simple th.l{text-align:left;}
+  .tree{display:flex;flex-direction:column;align-items:center;gap:.3rem;}
+  .tree .node{background:var(--grad);color:#fff;padding:.5rem 1rem;border-radius:10px;font-weight:700;font-size:1rem;box-shadow:0 4px 12px rgba(99,91,255,.25);}
+  .tree .leaf{background:#fff;border:1.5px solid var(--line);color:var(--navy);padding:.45rem .9rem;border-radius:10px;font-weight:700;font-size:.95rem;}
+  .tree .lvl{display:flex;gap:1.5rem;align-items:flex-start;}
+  .tree .branch{display:flex;flex-direction:column;align-items:center;gap:.3rem;}
+  .tree .edge{font-size:.8rem;color:var(--slate-2);}
+  #progress{position:fixed;top:0;left:0;height:4px;background:var(--grad);z-index:100;transition:width .35s ease;}
+  #hud{position:fixed;bottom:1.4vh;right:2vw;z-index:100;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem .9rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  #hud .counter{font-size:.95rem;font-weight:700;color:var(--slate);font-variant-numeric:tabular-nums;}
+  #hud button{border:none;background:transparent;cursor:pointer;font-size:1.3rem;color:var(--blurple);width:30px;height:30px;border-radius:50%;line-height:1;display:flex;align-items:center;justify-content:center;}
+  #hud button:hover{background:#eef0ff;}
+  #sectionlabel{position:fixed;bottom:1.4vh;left:2vw;z-index:100;font-size:.95rem;font-weight:700;color:var(--slate-2);background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:.4rem 1rem;box-shadow:0 4px 14px rgba(10,37,64,.1);}
+  .hint{position:fixed;bottom:1.4vh;left:50%;transform:translateX(-50%);z-index:100;font-size:.85rem;color:#8aa0b8;}
+  @media (max-width:1100px){h2.slide-title{font-size:1.85rem;}.slide.cover h1{font-size:2.5rem;}.slide.section h2{font-size:2.2rem;}.lead{font-size:1.18rem;}.grid-3,.grid-4{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="deck">
+
+<!-- 1 COVER -->
+<section class="slide cover active">
+  <div class="chapter-tag">CHAPTER 04</div>
+  <h1>분류<br><span style="font-size:2.1rem;font-weight:700;color:#c5d2e0">Classification</span></h1>
+  <p class="sub">머신러닝에서 가장 활발히 쓰이는 분야. <b style="color:#fff">결정 트리</b>부터 <b style="color:#fff">랜덤 포레스트, XGBoost, LightGBM</b>까지 — 캐글 우승자들의 무기고를 통째로 손에 넣습니다.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 강의자료 (이 장이 가장 큽니다!)</div>
+</section>
+
+<!-- 2 복습+목표 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>3장 복습 & 4장 목표</div>
+  <h2 class="slide-title">이제 '무기'를 본격적으로 모읍니다</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <div class="card"><h3>✅ 3장까지</h3><p>모델을 만들고(2장) 제대로 평가하는 법(3장)을 배웠습니다. 하지만 모델은 결정 트리 하나뿐이었죠.</p></div>
+        <div class="card accent"><h3>🎯 4장에서</h3><p>실전에서 쓰는 <b>강력한 분류 알고리즘들</b>을 하나씩 정복합니다. 특히 캐글에서 압도적인 <b>부스팅 계열</b>을 집중적으로.</p></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · RPG 게임</div>
+        <p>지금까지 기본 검(결정 트리) 하나로 싸웠다면, 4장은 <b>무기 상점이 통째로 열리는</b> 순간입니다. 활(랜덤 포레스트), 마법(부스팅)... 상황에 맞는 무기를 고르는 법까지 배웁니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 목차 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>4장의 큰 흐름</div>
+  <h2 class="slide-title">트리 → 앙상블 → 부스팅 → 실전</h2>
+  <div class="body-content">
+    <ul class="clean">
+      <li><b>결정 트리</b> — 모든 트리 기반 모델의 출발점 (스무고개)</li>
+      <li><b>앙상블 학습</b> — 여러 모델을 합치는 지혜 (보팅·배깅·부스팅)</li>
+      <li><b>랜덤 포레스트</b> — 트리들의 숲 (배깅의 대표)</li>
+      <li><b>부스팅: GBM → XGBoost → LightGBM</b> — 캐글의 절대 강자</li>
+      <li><b>하이퍼파라미터 튜닝</b> — HyperOpt 베이지안 최적화</li>
+      <li><b>실전 실습</b> — 산탄데르, 신용카드 사기, 스태킹 앙상블</li>
+    </ul>
+  </div>
+</section>
+
+<!-- SECTION 1 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 01-02</div>
+  <h2>분류 개요와 결정 트리</h2>
+  <p class="sec-desc">모든 강력한 트리 기반 모델의 뿌리. 가장 직관적인 분류 알고리즘부터 시작합니다.</p>
+</section>
+
+<!-- 5 분류 개요 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>분류의 개요</div>
+  <h2 class="slide-title">분류 알고리즘 지도</h2>
+  <div class="body-content">
+    <p class="lead" style="margin-bottom:1.2rem">분류 = 정답이 있는 데이터로 학습해 <b>새 데이터의 범주(클래스)</b>를 맞히는 지도학습. 종류가 많지만, 이 장은 <b class="grad-text" style="font-weight:800">트리 기반</b>에 집중합니다.</p>
+    <div class="grid grid-3">
+      <div class="card"><h3>🌳 트리 기반</h3><p>결정 트리, 랜덤 포레스트, XGBoost, LightGBM <b>(이 장의 주인공)</b></p></div>
+      <div class="card"><h3>📐 선형/거리</h3><p>로지스틱 회귀, SVM, KNN, 나이브 베이즈</p></div>
+      <div class="card"><h3>🧠 신경망</h3><p>딥러닝 (별도 영역)</p></div>
+    </div>
+    <p class="note">🔑 왜 트리 기반? <b>정형 데이터(표 형태)</b>에서 성능이 가장 좋고, 캐글 대회 우승 모델의 대부분을 차지하기 때문입니다.</p>
+  </div>
+</section>
+
+<!-- 6 결정 트리 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>결정 트리</div>
+  <h2 class="slide-title">결정 트리 — 스무고개로 분류하기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="tree">
+        <div class="node">꽃잎 길이 ≤ 2.5?</div>
+        <div class="lvl">
+          <div class="branch"><span class="edge">예</span><div class="leaf">🌸 setosa</div></div>
+          <div class="branch"><span class="edge">아니오</span><div class="node">꽃잎 너비 ≤ 1.7?</div>
+            <div class="lvl"><div class="leaf">versicolor</div><div class="leaf">virginica</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 스무고개</div>
+        <p>"이게 2.5보다 커요?" → "네/아니오"로 계속 질문을 던져 답을 좁혀갑니다. 결정 트리는 <b>가장 잘 나누는 질문</b>을 데이터에서 자동으로 찾아 위→아래로 분기합니다.</p>
+      </div>
+    </div>
+    <p class="note">📌 장점: <b>사람이 이해하기 쉽다</b>(규칙이 눈에 보임). 단점: 너무 깊어지면 <b>과적합</b>(다음 슬라이드).</p>
+  </div>
+</section>
+
+<!-- 7 분할 기준 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>결정 트리의 원리</div>
+  <h2 class="slide-title">"잘 나눈다"는 건 무슨 뜻일까?</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li><b>불순도(impurity)</b>: 한 그룹에 여러 클래스가 섞인 정도</li>
+          <li><b>지니 계수 / 엔트로피</b>로 측정</li>
+          <li>트리는 <b>불순도가 가장 많이 낮아지는</b> 질문을 선택</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 빨래 분류</div>
+        <p>흰옷·색옷이 섞인 바구니(불순도 높음)를 질문 하나로 나눠 <b>한쪽은 흰옷만, 한쪽은 색옷만</b>(불순도 낮음) 되게 하는 것. 가장 깔끔하게 나누는 기준을 고릅니다.</p>
+      </div>
+    </div>
+    <p class="note">📌 지금은 "트리가 <b>가장 순수하게 나누는 기준</b>을 자동으로 찾는다"만 기억하면 충분합니다. 공식 암기 불필요!</p>
+  </div>
+</section>
+
+<!-- 8 과적합 + 파라미터 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>과적합과 주요 파라미터</div>
+  <h2 class="slide-title">너무 깊은 트리는 위험하다</h2>
+  <div class="body-content">
+    <div class="warn">
+      <div class="tag">⚠️ 과적합(Overfitting)</div>
+      <p>제약 없이 트리를 키우면 <b>학습 데이터의 사소한 노이즈·예외까지 외워버립니다.</b> 학습은 100점, 실전은 엉망. 결정 경계가 들쭉날쭉 복잡해져요.</p>
+    </div>
+    <div class="grid grid-3" style="margin-top:1.2rem">
+      <div class="card"><h3>max_depth</h3><p>트리 최대 깊이 제한</p></div>
+      <div class="card"><h3>min_samples_split</h3><p>나누기 위한 최소 샘플 수</p></div>
+      <div class="card"><h3>min_samples_leaf</h3><p>잎(끝 노드) 최소 샘플 수</p></div>
+    </div>
+    <p class="note">🔑 이 파라미터들로 트리가 <b>너무 자잘하게 나뉘지 않도록</b> 제어합니다. 비유하면 "스무고개 질문 횟수를 제한"하는 셈.</p>
+  </div>
+</section>
+
+<!-- 9 실습 사용자 행동 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>실습 · 사용자 행동 인식</div>
+  <h2 class="slide-title">스마트폰 센서로 행동 맞히기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code sm"><span class="cm"># 561개 센서 피처로 6가지 행동(걷기/앉기 등) 분류</span>
+dt_clf = <span class="fn">DecisionTreeClassifier</span>(random_state=<span class="nm">156</span>)
+
+<span class="cm"># GridSearchCV로 max_depth 튜닝</span>
+params = {<span class="st">'max_depth'</span>:[<span class="nm">6</span>,<span class="nm">8</span>,<span class="nm">10</span>,<span class="nm">12</span>,<span class="nm">16</span>,<span class="nm">20</span>,<span class="nm">24</span>]}
+grid = <span class="fn">GridSearchCV</span>(dt_clf, params, cv=<span class="nm">5</span>)
+<span class="cm"># 최적 max_depth=16, 정확도 약 0.85</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 피처 중요도</div>
+        <p>트리 모델은 <b>어떤 피처가 분류에 많이 쓰였는지</b>(feature_importances_)를 알려줍니다. "어떤 센서가 행동 구분에 결정적인가"를 알 수 있어 <b>해석이 쉬운 게</b> 큰 장점이에요.</p>
+      </div>
+    </div>
+    <p class="note">📌 <code style="font-family:monospace">feature_importances_</code> → 막대그래프로 그려 상위 피처를 확인하는 게 실무 단골 패턴.</p>
+  </div>
+</section>
+
+<!-- 10 퀴즈 1 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>결정 트리 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="1">
+      <span class="q-tag">QUIZ 01</span>
+      <div class="q">결정 트리에서 <b>max_depth를 매우 크게</b> 설정하면 일어나기 쉬운 일은?</div>
+      <div class="opts">
+        <div class="opt">① 학습이 빨라지고 항상 성능이 좋아진다</div>
+        <div class="opt">② 학습 데이터에 과적합되어 새 데이터 성능이 나빠질 수 있다</div>
+        <div class="opt">③ 트리가 아예 만들어지지 않는다</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ②</b> — 깊이 제한이 없으면 노이즈까지 외워 과적합됩니다. max_depth, min_samples_leaf 등으로 적절히 제어해야 해요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 03</div>
+  <h2>앙상블 학습</h2>
+  <p class="sec-desc">"한 명의 천재보다 여러 명의 협력이 낫다." 여러 모델을 합쳐 더 강한 모델을 만듭니다.</p>
+</section>
+
+<!-- 12 앙상블 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>앙상블 개요</div>
+  <h2 class="slide-title">앙상블 = 집단 지성</h2>
+  <div class="body-content">
+    <div class="grid grid-3">
+      <div class="card accent"><h3>🗳️ 보팅 (Voting)</h3><p><b>서로 다른</b> 알고리즘들의 예측을 투표로 합침</p></div>
+      <div class="card accent"><h3>🌲 배깅 (Bagging)</h3><p><b>같은</b> 알고리즘을 데이터 일부씩 나눠 여러 개 학습 (→ 랜덤 포레스트)</p></div>
+      <div class="card accent"><h3>🚀 부스팅 (Boosting)</h3><p>모델을 <b>순차적으로</b> 만들며 이전 오류를 보완 (→ XGBoost)</p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 퀴즈쇼 찬스</div>
+      <p>어려운 문제를 <b>방청객 다수에게 물어</b>(보팅) 다수결로 답하면, 혼자 찍는 것보다 정답률이 높습니다. 앙상블의 핵심 직관이 바로 이거예요. "여럿이 모이면 똑똑해진다."</p>
+    </div>
+  </div>
+</section>
+
+<!-- 13 하드 vs 소프트 보팅 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>보팅 유형</div>
+  <h2 class="slide-title">하드 보팅 vs 소프트 보팅</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col old">
+        <h4>하드 보팅 (Hard)</h4>
+        <p>각 모델의 <b>최종 예측(0/1)</b>을 다수결</p>
+        <p>예: 3개 모델이 [1, 1, 0] → <b>1</b></p>
+      </div>
+      <div class="col new">
+        <h4>소프트 보팅 (Soft) ⭐</h4>
+        <p>각 모델의 <b>예측 확률을 평균</b>내어 결정</p>
+        <p>예: 확률 [0.9, 0.8, 0.4] 평균 0.7 → <b>1</b></p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 보통 소프트가 더 좋다</div>
+      <p>하드 보팅은 "1표는 1표"지만, 소프트 보팅은 <b>"얼마나 확신하는지"까지 반영</b>합니다. 자신 없는 표(0.51)와 확신하는 표(0.99)를 구별하니, 대체로 성능이 더 좋아요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 14 VotingClassifier 코드 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>VotingClassifier</div>
+  <h2 class="slide-title">코드로 보기 — 보팅 분류기</h2>
+  <div class="body-content">
+    <div class="code"><span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> VotingClassifier
+
+lr_clf = <span class="fn">LogisticRegression</span>()
+knn_clf = <span class="fn">KNeighborsClassifier</span>(n_neighbors=<span class="nm">8</span>)
+
+<span class="cm"># 두 모델을 소프트 보팅으로 결합</span>
+vo_clf = <span class="fn">VotingClassifier</span>(estimators=[(<span class="st">'LR'</span>,lr_clf),(<span class="st">'KNN'</span>,knn_clf)],
+                        voting=<span class="st">'soft'</span>)
+vo_clf.<span class="fn">fit</span>(X_train, y_train)
+<span class="cm"># 유방암 데이터 → 보팅이 개별 모델보다 정확도↑ (대체로)</span></div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 핵심</div>
+      <p>서로 <b>성격이 다른 모델</b>(로지스틱+KNN)을 묶을수록 효과가 큽니다. 비슷한 모델끼리는 같은 실수를 하니까요. "다양성"이 앙상블의 힘입니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 04</div>
+  <h2>랜덤 포레스트</h2>
+  <p class="sec-desc">결정 트리 수백 그루를 심어 만든 '숲'. 배깅의 대표 주자입니다.</p>
+</section>
+
+<!-- 16 랜덤 포레스트 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>랜덤 포레스트</div>
+  <h2 class="slide-title">트리 하나 말고, 숲을 만들자</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>여러 결정 트리를 <b>데이터·피처를 무작위로</b> 뽑아 학습</li>
+          <li>각 트리의 예측을 <b>투표/평균</b>으로 종합</li>
+          <li>과적합에 강하고, 성능도 안정적</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 여러 의사 진단</div>
+        <p>한 의사(트리 하나)는 실수할 수 있지만, <b>서로 다른 자료를 본 의사 100명</b>의 의견을 모으면 훨씬 믿을 만합니다. '무작위성'이 각 트리를 다르게 만들어 다양성을 확보해요.</p>
+      </div>
+    </div>
+    <div class="code sm" style="margin-top:1.1rem"><span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> RandomForestClassifier
+rf = <span class="fn">RandomForestClassifier</span>(n_estimators=<span class="nm">100</span>, random_state=<span class="nm">0</span>)   <span class="cm"># 트리 100그루</span></div>
+  </div>
+</section>
+
+<!-- 17 RF 하이퍼파라미터 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>랜덤 포레스트 하이퍼파라미터</div>
+  <h2 class="slide-title">숲을 조율하는 손잡이들</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card"><h3>n_estimators</h3><p>트리 개수 (많을수록 안정적이지만 느려짐, 보통 100~300)</p></div>
+      <div class="card"><h3>max_depth</h3><p>각 트리의 최대 깊이 (과적합 제어)</p></div>
+      <div class="card"><h3>min_samples_leaf</h3><p>잎 노드 최소 샘플 수</p></div>
+      <div class="card"><h3>max_features</h3><p>분할 시 고려할 피처 수 (무작위성의 원천)</p></div>
+    </div>
+    <p class="note">🔑 결정 트리의 파라미터 + 트리 개수(n_estimators). GridSearchCV로 튜닝하지만, <b>n_jobs=-1</b>로 CPU를 전부 써 속도를 높입니다.</p>
+  </div>
+</section>
+
+<!-- 18 퀴즈 2 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>앙상블 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="2">
+      <span class="q-tag">QUIZ 02</span>
+      <div class="q">랜덤 포레스트는 어떤 앙상블 방식에 속할까요?</div>
+      <div class="opts">
+        <div class="opt">① 보팅 (서로 다른 알고리즘 투표)</div>
+        <div class="opt">② 부스팅 (순차적 오류 보완)</div>
+        <div class="opt">③ 배깅 (같은 알고리즘을 무작위 데이터로 여러 개)</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ③  배깅</b> — 같은 결정 트리를, 데이터/피처를 무작위로 뽑아 여러 개 학습한 뒤 종합합니다. 부스팅(다음 섹션)과는 방식이 달라요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 5 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 05-07</div>
+  <h2>부스팅 — GBM · XGBoost · LightGBM</h2>
+  <p class="sec-desc">캐글 대회를 휩쓰는 절대 강자. '실수를 보완해 나가는' 방식의 위력을 봅니다.</p>
+</section>
+
+<!-- 20 부스팅 개념 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>부스팅 개요</div>
+  <h2 class="slide-title">부스팅 = 오답 노트 학습법</h2>
+  <div class="body-content">
+    <div class="flow">
+      <div class="step"><div class="n">모델 1</div><div class="s">일단 예측</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">틀린 부분</div><div class="s">집중 표시</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">모델 2</div><div class="s">틀린 것 보완</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">반복...</div><div class="s">점점 강해짐</div></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 비유 · 오답 노트</div>
+      <p>공부 잘하는 학생은 <b>틀린 문제를 모아 다시 풉니다.</b> 부스팅도 똑같아요. 앞 모델이 틀린 데이터에 <b>가중치를 줘서</b> 다음 모델이 그걸 집중 공략. 약한 모델을 이어 붙여 <b>강한 모델</b>로 만듭니다.</p>
+    </div>
+    <p class="note">📌 배깅(병렬, 독립)과 달리 부스팅은 <b>순차적</b>(앞→뒤로 보완). 그래서 성능은 높지만 학습이 느릴 수 있어요.</p>
+  </div>
+</section>
+
+<!-- 21 GBM -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>GBM (Gradient Boosting)</div>
+  <h2 class="slide-title">GBM — 부스팅의 기본형</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>오류(잔차)를 <b>경사 하강법</b>으로 줄여나가는 부스팅</li>
+          <li>성능은 좋지만 <b>학습이 느리다</b>(순차적이라 병렬화 어려움)</li>
+        </ul>
+        <div class="code sm"><span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> GradientBoostingClassifier
+gb = <span class="fn">GradientBoostingClassifier</span>(random_state=<span class="nm">0</span>)</div>
+      </div>
+      <div class="warn">
+        <div class="tag">⚠️ 느림이 약점</div>
+        <p>GBM은 정확하지만 <b>학습 시간이 오래</b> 걸립니다. 이 약점을 개선한 게 다음에 배울 <b>XGBoost·LightGBM</b>이에요. 그래서 실무에선 GBM 자체보다 그 후예들을 더 씁니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 22 XGBoost 개요 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>XGBoost</div>
+  <h2 class="slide-title">XGBoost — GBM의 강력한 업그레이드</h2>
+  <div class="body-content">
+    <div class="grid grid-3">
+      <div class="card"><h3>⚡ 빠름</h3><p>병렬 처리로 GBM보다 훨씬 빠른 학습</p></div>
+      <div class="card"><h3>🛡️ 규제</h3><p>과적합을 막는 규제(regularization) 내장</p></div>
+      <div class="card"><h3>⏱️ 조기 중단</h3><p>성능이 안 늘면 자동으로 학습 멈춤</p></div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 왜 캐글의 왕인가</div>
+      <p>GBM의 정확함은 유지하면서 <b>속도·과적합 방지</b>를 모두 개선했습니다. 한동안 <b>캐글 정형 데이터 대회 우승을 독식</b>했던 전설의 모델. 지금도 가장 많이 쓰입니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 23 조기중단 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>조기 중단 (Early Stopping)</div>
+  <h2 class="slide-title">"더 안 늘면 그만하자"</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code sm"><span class="cm"># 검증 데이터로 성능 모니터링</span>
+xgb.<span class="fn">train</span>(params, dtrain,
+          num_boost_round=<span class="nm">400</span>,
+          <span class="nm">early_stopping_rounds</span>=<span class="nm">50</span>,
+          evals=eval_list)
+<span class="cm"># 50번 동안 개선 없으면 자동 중단</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 운동 정체기</div>
+        <p>운동 효과가 50일째 안 나타나면 <b>방법을 바꾸거나 멈추죠.</b> 조기 중단은 트리를 400개까지 만들 수 있어도, <b>성능이 더 안 늘면 알아서 멈춰</b> 시간 낭비와 과적합을 막습니다.</p>
+      </div>
+    </div>
+    <p class="note">🔑 그래서 보통 <b>학습용·검증용</b>을 따로 두고(X_tr / X_val) 검증 성능으로 멈출 시점을 판단합니다.</p>
+  </div>
+</section>
+
+<!-- 24 XGBoost 코드 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>XGBoost 사이킷런 래퍼</div>
+  <h2 class="slide-title">코드로 보기 — 익숙한 fit/predict</h2>
+  <div class="body-content">
+    <div class="code"><span class="kw">from</span> xgboost <span class="kw">import</span> XGBClassifier
+
+xgb = <span class="fn">XGBClassifier</span>(n_estimators=<span class="nm">400</span>, learning_rate=<span class="nm">0.1</span>, max_depth=<span class="nm">3</span>)
+xgb.<span class="fn">fit</span>(X_train, y_train)            <span class="cm"># 사이킷런과 똑같은 fit/predict!</span>
+pred = xgb.<span class="fn">predict</span>(X_test)</div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 두 가지 사용법</div>
+      <p>XGBoost는 <b>파이썬 래퍼</b>(고유 방식)와 <b>사이킷런 래퍼</b>(XGBClassifier)가 있어요. 초보자는 <b>사이킷런 래퍼</b>를 추천! 지금까지 배운 fit/predict가 그대로 통하니까요.</p>
+    </div>
+    <p class="note">📌 핵심 파라미터: <b>n_estimators</b>(트리 수), <b>learning_rate</b>(학습률, 보통 0.01~0.2), <b>max_depth</b>.</p>
+  </div>
+</section>
+
+<!-- 25 LightGBM -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>LightGBM</div>
+  <h2 class="slide-title">LightGBM — 더 가볍고, 더 빠르게</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>XGBoost보다 <b>훨씬 빠르고</b> 메모리 적게 씀</li>
+          <li><b>리프 중심(leaf-wise)</b> 분할 — 더 깊고 효율적</li>
+          <li>대용량 데이터에 특히 강함</li>
+        </ul>
+        <div class="code sm"><span class="kw">from</span> lightgbm <span class="kw">import</span> LGBMClassifier
+lgbm = <span class="fn">LGBMClassifier</span>(n_estimators=<span class="nm">400</span>)</div>
+      </div>
+      <div class="warn">
+        <div class="tag">⚠️ 작은 데이터엔 주의</div>
+        <p>LightGBM은 빠르지만 <b>데이터가 적으면(보통 1만 건 이하) 과적합</b>되기 쉽습니다. 데이터가 클 때 진가를 발휘해요. 작은 데이터엔 XGBoost나 랜덤 포레스트가 더 안전할 수 있습니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 26 XGB vs LGBM 비교 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>XGBoost vs LightGBM</div>
+  <h2 class="slide-title">언제 무엇을 쓸까?</h2>
+  <div class="body-content">
+    <table class="simple">
+      <tr><th class="l">항목</th><th>XGBoost</th><th>LightGBM</th></tr>
+      <tr><td class="l">속도</td><td>빠름</td><td class="hi">매우 빠름 ⚡</td></tr>
+      <tr><td class="l">메모리</td><td>보통</td><td class="hi">적음</td></tr>
+      <tr><td class="l">분할 방식</td><td>레벨 중심</td><td>리프 중심</td></tr>
+      <tr><td class="l">작은 데이터</td><td class="hi">상대적으로 안전</td><td>과적합 주의</td></tr>
+      <tr><td class="l">대용량 데이터</td><td>good</td><td class="hi">best</td></tr>
+    </table>
+    <div class="analogy" style="margin-top:1.2rem">
+      <div class="tag">💡 실무 팁</div>
+      <p>둘 다 캐글 단골입니다. <b>"일단 LightGBM으로 빠르게 실험 → XGBoost로 교차 검증"</b>하는 식으로 병행하는 경우가 많아요. 정답은 없고, <b>둘 다 돌려보고 비교</b>하는 게 정석.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 27 퀴즈 3 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>부스팅 점검</div>
+  <h2 class="slide-title">미니 퀴즈</h2>
+  <div class="body-content">
+    <div class="quiz" data-answer="1">
+      <span class="q-tag">QUIZ 03</span>
+      <div class="q">XGBoost의 <b>early_stopping_rounds=50</b>의 역할은?</div>
+      <div class="opts">
+        <div class="opt">① 트리를 무조건 50개만 만든다</div>
+        <div class="opt">② 검증 성능이 50번 동안 개선 안 되면 학습을 멈춘다</div>
+        <div class="opt">③ 데이터를 50개씩 나눈다</div>
+      </div>
+      <button class="reveal-btn" onclick="revealQuiz(this)">정답 보기</button>
+      <div class="answer"><b>정답: ②</b> — 일정 횟수 동안 검증 성능이 안 늘면 자동으로 멈춰, 시간 낭비와 과적합을 막습니다. 부스팅 계열의 강력한 기능이에요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 08</div>
+  <h2>하이퍼파라미터 튜닝 — HyperOpt</h2>
+  <p class="sec-desc">GridSearch보다 똑똑하게, 베이지안 최적화로 최적값을 찾습니다.</p>
+</section>
+
+<!-- 29 베이지안 최적화 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>베이지안 최적화</div>
+  <h2 class="slide-title">GridSearch의 한계를 넘어</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col old">
+        <h4>GridSearchCV</h4>
+        <p>가능한 <b>모든 조합</b>을 전부 시도</p>
+        <p>파라미터가 많아지면 <b>경우의 수 폭발</b> → 매우 느림</p>
+      </div>
+      <div class="col new">
+        <h4>베이지안 최적화 (HyperOpt)</h4>
+        <p>이전 결과를 <b>학습</b>해 다음 후보를 <b>똑똑하게</b> 선택</p>
+        <p>적은 시도로 좋은 값에 빠르게 도달</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 보물찾기</div>
+      <p>GridSearch는 <b>모든 칸을 다 파보는</b> 무식한 탐색. 베이지안 최적화는 <b>"여기 근처가 따뜻하니 더 파보자"</b>처럼 단서를 활용해 효율적으로 찾습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 30 HyperOpt 코드 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>HyperOpt 사용법</div>
+  <h2 class="slide-title">3단계: 공간 → 목적함수 → fmin</h2>
+  <div class="body-content">
+    <div class="code sm"><span class="cm"># ① 탐색 공간 정의</span>
+search_space = {<span class="st">'x'</span>: hp.<span class="fn">quniform</span>(<span class="st">'x'</span>, -<span class="nm">10</span>, <span class="nm">10</span>, <span class="nm">1</span>)}
+
+<span class="cm"># ② 목적 함수 (작을수록 좋은 값을 반환)</span>
+<span class="kw">def</span> <span class="fn">objective_func</span>(space):
+    <span class="kw">return</span> space[<span class="st">'x'</span>]**<span class="nm">2</span>   <span class="cm"># 최소화할 대상</span>
+
+<span class="cm"># ③ fmin으로 최적값 탐색</span>
+best = <span class="fn">fmin</span>(fn=objective_func, space=search_space,
+            algo=tpe.suggest, max_evals=<span class="nm">20</span>)</div>
+    <div class="analogy" style="margin-top:1.2rem">
+      <div class="tag">💡 실전에선</div>
+      <p>목적 함수 안에서 <b>XGBoost를 교차검증으로 학습</b>하고, 그 성능(예: -ROC AUC)을 반환하게 만들면, HyperOpt가 <b>최적 하이퍼파라미터</b>를 자동으로 찾아줍니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 7 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 09-10</div>
+  <h2>실전 실습 — 불균형 데이터와의 싸움</h2>
+  <p class="sec-desc">산탄데르 고객 만족, 신용카드 사기 검출. 현실의 '극단적 불균형' 데이터를 다룹니다.</p>
+</section>
+
+<!-- 32 산탄데르 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>산탄데르 고객 만족 예측</div>
+  <h2 class="slide-title">"이 고객은 불만족일까?"</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div class="stack">
+        <ul class="clean">
+          <li>익명화된 <b>피처 370개</b>, 불만족 고객은 <b>약 4%</b>뿐 (불균형)</li>
+          <li>이상값 처리(-999999 → 2), ID 제거 등 전처리</li>
+          <li><b>XGBoost·LightGBM</b>으로 학습, ROC-AUC로 평가</li>
+        </ul>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 평가 지표 선택</div>
+        <p>불만족이 4%뿐이라 <b>정확도는 무의미</b>(3장 복습!). 그래서 <b>ROC-AUC</b>로 평가합니다. 불균형 데이터의 분별력을 보기에 적합하죠.</p>
+      </div>
+    </div>
+    <p class="note">📌 피처가 370개나 되니, HyperOpt로 하이퍼파라미터를 튜닝해 성능을 끌어올립니다.</p>
+  </div>
+</section>
+
+<!-- 33 신용카드 소개 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>신용카드 사기 검출</div>
+  <h2 class="slide-title">극단적 불균형: 사기 0.17%</h2>
+  <div class="body-content">
+    <div class="warn">
+      <div class="tag">⚠️ 28만 건 중 사기는 492건 (0.17%)</div>
+      <p>"모두 정상"이라 찍어도 정확도 99.8%. 하지만 사기를 못 잡으면 무의미하죠. 이런 <b>극단적 불균형</b>을 어떻게 다룰지가 이 실습의 핵심입니다.</p>
+    </div>
+    <div class="flow" style="margin-top:1.3rem">
+      <div class="step"><div class="n">① 일차 가공</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">② 로그 변환</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">③ 이상치 제거</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">④ SMOTE</div></div>
+    </div>
+    <p class="note">🔑 단계마다 성능(특히 재현율·AUC)이 어떻게 개선되는지 추적하는 게 포인트.</p>
+  </div>
+</section>
+
+<!-- 34 언더 vs 오버 샘플링 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>언더 샘플링 vs 오버 샘플링</div>
+  <h2 class="slide-title">불균형을 맞추는 두 방법</h2>
+  <div class="body-content">
+    <div class="compare">
+      <div class="col old">
+        <h4>언더 샘플링</h4>
+        <p>많은 쪽(정상)을 <b>줄인다</b></p>
+        <p>데이터 손실 위험 (정보 버림)</p>
+      </div>
+      <div class="col new">
+        <h4>오버 샘플링 ⭐</h4>
+        <p>적은 쪽(사기)을 <b>늘린다</b></p>
+        <p>주로 SMOTE 사용 (다음 슬라이드)</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.3rem">
+      <div class="tag">💡 비유 · 토론 균형 맞추기</div>
+      <p>찬성 100명 vs 반대 3명인 토론은 한쪽으로 쏠립니다. <b>찬성을 줄이거나(언더)</b>, <b>반대를 늘려야(오버)</b> 균형이 맞죠. 보통 정보 손실이 없는 <b>오버 샘플링</b>을 선호합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 35 로그 변환 + 이상치 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>로그 변환 & 이상치 제거</div>
+  <h2 class="slide-title">데이터의 모양 다듬기</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>📉 로그 변환</h3>
+        <p>한쪽으로 쏠린(왜곡된) 분포를 <b>고르게 펴줌</b>. 거래 금액처럼 일부 값이 매우 큰 경우 효과적.</p>
+        <p style="font-family:monospace;color:#635bff;margin-top:.4rem">np.log1p(df['Amount'])</p>
+      </div>
+      <div class="card">
+        <h3>🎯 이상치 제거 (IQR)</h3>
+        <p>너무 동떨어진 값을 <b>사분위 범위(IQR)</b> 기준으로 찾아 제거. 모델이 극단값에 휘둘리지 않게.</p>
+      </div>
+    </div>
+    <div class="analogy" style="margin-top:1.2rem">
+      <div class="tag">💡 비유 · 사진 보정</div>
+      <p>로그 변환은 <b>너무 밝거나 어두운 사진의 명암을 고르게</b> 펴는 것, 이상치 제거는 <b>화면에 잘못 찍힌 점을 지우는</b> 것. 둘 다 모델이 데이터를 더 잘 보게 돕습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 36 SMOTE -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>SMOTE 오버 샘플링</div>
+  <h2 class="slide-title">SMOTE — 그럴듯한 가짜 데이터 만들기</h2>
+  <div class="body-content">
+    <div class="two-col">
+      <div>
+        <div class="code sm"><span class="kw">from</span> imblearn.over_sampling <span class="kw">import</span> SMOTE
+
+smote = <span class="fn">SMOTE</span>(random_state=<span class="nm">0</span>)
+X_over, y_over = smote.<span class="fn">fit_resample</span>(X_train, y_train)
+<span class="cm"># 학습 데이터에만! 적은 클래스를 합성으로 증식</span></div>
+      </div>
+      <div class="analogy">
+        <div class="tag">💡 비유 · 빈칸 채우기</div>
+        <p>기존 사기 데이터들 <b>사이사이에 그럴듯한 새 점</b>을 만들어 수를 늘립니다. 단순 복사가 아니라 <b>이웃을 보고 보간</b>하는 방식. 단, <b>학습 데이터에만</b> 적용(테스트엔 X)!</p>
+      </div>
+    </div>
+    <div class="warn" style="margin-top:1.1rem">
+      <div class="tag">⚠️ 꼭 기억</div>
+      <p>SMOTE는 <b>반드시 train_test_split 이후, 학습 데이터에만</b> 적용합니다. 테스트 데이터에 적용하면 평가가 왜곡돼요. (3장 'fit 유의점'과 같은 원리)</p>
+    </div>
+  </div>
+</section>
+
+<!-- 37 성능 개선 흐름 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>단계별 성능 개선</div>
+  <h2 class="slide-title">전처리가 성능을 만든다</h2>
+  <div class="body-content">
+    <p class="lead" style="margin-bottom:1.2rem">신용카드 실습은 같은 모델(LightGBM)을 쓰면서 <b>전처리 단계만 추가</b>해 성능을 끌어올립니다.</p>
+    <div class="flow">
+      <div class="step"><div class="n">원본</div><div class="s">baseline</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">+로그변환</div><div class="s">분포 개선</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">+이상치 제거</div><div class="s">노이즈↓</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">+SMOTE</div><div class="s">불균형 해소</div></div>
+    </div>
+    <p class="note" style="margin-top:1.3rem">🔑 핵심 교훈: <b>좋은 모델보다 좋은 데이터가 먼저</b>입니다. 알고리즘을 바꾸기 전에 데이터를 다듬는 게 더 큰 성능 향상을 주는 경우가 많아요. (1장의 '데이터 전쟁' 복습!)</p>
+  </div>
+</section>
+
+<!-- SECTION 8 -->
+<section class="slide section dark">
+  <div class="sec-num">SECTION 11</div>
+  <h2>스태킹 앙상블</h2>
+  <p class="sec-desc">앙상블의 끝판왕. 모델의 '예측'을 다시 입력으로 쓰는 한 단계 높은 기법.</p>
+</section>
+
+<!-- 39 스태킹 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>스태킹 개념</div>
+  <h2 class="slide-title">스태킹 — 예측을 모아 또 예측한다</h2>
+  <div class="body-content">
+    <div class="flow">
+      <div class="step"><div class="n">여러 모델</div><div class="s">KNN·RF·DT·Ada</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">각자 예측</div><div class="s">예측값 모음</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n">메타 모델</div><div class="s">예측들로 최종 판단</div></div>
+    </div>
+    <div class="analogy" style="margin-top:1.4rem">
+      <div class="tag">💡 비유 · 전문가 패널 + 의장</div>
+      <p>여러 전문가(개별 모델)가 각자 의견을 내면, <b>의장(메타 모델)</b>이 그 의견들을 종합해 최종 결정을 내립니다. 개별 모델의 예측 결과가 <b>메타 모델의 입력 데이터</b>가 되는 거예요.</p>
+    </div>
+    <p class="note">📌 <b>CV 세트 기반 스태킹</b>: 과적합을 막기 위해 교차 검증 방식으로 메타 학습 데이터를 만드는 정교한 버전도 있습니다.</p>
+  </div>
+</section>
+
+<!-- 40 알고리즘 선택 가이드 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>정리 · 알고리즘 선택 가이드</div>
+  <h2 class="slide-title">결국, 언제 무엇을 쓸까?</h2>
+  <div class="body-content">
+    <table class="simple">
+      <tr><th class="l">상황</th><th class="l">추천</th></tr>
+      <tr><td class="l">빠르게 baseline / 해석 필요</td><td class="l hi">결정 트리, 랜덤 포레스트</td></tr>
+      <tr><td class="l">정형 데이터 최고 성능</td><td class="l hi">XGBoost, LightGBM</td></tr>
+      <tr><td class="l">대용량 데이터 / 빠른 실험</td><td class="l hi">LightGBM</td></tr>
+      <tr><td class="l">불균형 데이터</td><td class="l hi">샘플링(SMOTE) + AUC 평가</td></tr>
+      <tr><td class="l">마지막 0.1% 성능 짜내기</td><td class="l hi">스태킹 앙상블</td></tr>
+    </table>
+    <p class="note" style="margin-top:1.1rem">🔑 정답은 없습니다. <b>여러 개를 돌려보고 교차 검증으로 비교</b>하는 게 정석. 이 표는 출발점일 뿐이에요.</p>
+  </div>
+</section>
+
+<!-- 정리 -->
+<section class="slide">
+  <div class="kicker"><span class="dot"></span>4장 핵심 정리</div>
+  <h2 class="slide-title">오늘의 한 페이지 요약</h2>
+  <div class="body-content">
+    <div class="grid grid-2">
+      <div class="card accent"><h3><span class="ico">🌳</span>트리 & 앙상블</h3><p>결정 트리(스무고개)는 과적합 주의. 앙상블=집단지성(보팅·배깅·부스팅).</p></div>
+      <div class="card accent"><h3><span class="ico">🌲</span>랜덤 포레스트</h3><p>배깅의 대표. 트리들의 숲으로 안정적 성능.</p></div>
+      <div class="card accent"><h3><span class="ico">🚀</span>부스팅 (XGB·LGBM)</h3><p>오답 노트 방식. 조기 중단·규제. 정형 데이터 최강, 캐글의 왕.</p></div>
+      <div class="card accent"><h3><span class="ico">🛠️</span>실전 기법</h3><p>HyperOpt 튜닝, 불균형 대응(SMOTE·로그변환·이상치 제거), 스태킹.</p></div>
+    </div>
+    <p class="note" style="margin-top:1.2rem">✅ 이 장의 무기들로 <b>웬만한 정형 데이터 분류 문제는 직접 풀 수 있습니다.</b> 팀 프로젝트·캐글 입문 준비 완료!</p>
+  </div>
+</section>
+
+<!-- 마무리 -->
+<section class="slide cover">
+  <div class="chapter-tag">NEXT · CHAPTER 05</div>
+  <h1>숫자를 '맞히는'<br>문제로 📈</h1>
+  <p class="sub">지금까진 '범주'를 맞혔다면(분류), 다음 장 <b style="color:#fff">회귀(Regression)</b>는 '숫자'를 예측합니다. 집값, 자전거 대여량처럼요. 경사 하강법, 규제(릿지·라쏘), 회귀 트리까지 — 트리 기반 무기를 회귀에도 그대로 활용합니다.</p>
+  <p class="sub" style="margin-top:1.3rem;font-size:1.22rem;color:#9fb3c8">💪 숙제: 타이타닉 데이터에 RandomForest, XGBoost, LightGBM을 각각 적용하고 ROC-AUC를 비교해 보기.</p>
+  <div class="footer-note">파이썬 머신러닝 완벽 가이드 · 4장 끝 · 정말 수고했습니다!</div>
+</section>
+
+</div>
+
+<div id="sectionlabel">4장 · 분류 (Classification)</div>
+<div class="hint">← → 또는 스페이스로 이동 · F 전체화면</div>
+<div id="hud">
+  <button onclick="go(-1)" aria-label="이전">‹</button>
+  <span class="counter"><span id="cur">1</span> / <span id="total">1</span></span>
+  <button onclick="go(1)" aria-label="다음">›</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+  function render(){
+    slides.forEach((s,i)=>s.classList.toggle('active', i===idx));
+    document.getElementById('cur').textContent = idx+1;
+    document.getElementById('progress').style.width = ((idx+1)/slides.length*100)+'%';
+  }
+  function go(d){const n=idx+d;if(n>=0&&n<slides.length){idx=n;render();}}
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(-1);}
+    else if(e.key==='Home'){idx=0;render();}
+    else if(e.key==='End'){idx=slides.length-1;render();}
+    else if(e.key.toLowerCase()==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+  });
+  document.getElementById('deck').addEventListener('click', e=>{
+    if(e.target.closest('.opt,.reveal-btn,button,a'))return;
+    const x=e.clientX/window.innerWidth;go(x<0.25?-1:1);
+  });
+  function revealQuiz(btn){
+    const quiz=btn.closest('.quiz');
+    const ansIdx=parseInt(quiz.dataset.answer,10);
+    const opts=quiz.querySelectorAll('.opt');
+    if(opts[ansIdx])opts[ansIdx].classList.add('reveal-correct');
+    quiz.querySelector('.answer').classList.add('show');
+    btn.style.display='none';
+  }
+  render();
+</script>
+</body>
+</html>
